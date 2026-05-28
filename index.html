@@ -1092,7 +1092,8 @@
     const[lbKey,setLbKey]=useState(0);
     const[disconnectMsg,setDisconnectMsg]=useState(null);
     const[moveErr,setMoveErr]=useState(null);
-    const[syncing,setSyncing]=useState(isOnline);
+    const[syncing,setSyncing]=useState(false);
+    const moveBusyRef=useRef(false);
     const lastMoveRef=useRef(null);
     const timerRef=useRef(null),botTimeout=useRef(null);
     const isDesktop=useDesktop();
@@ -1126,12 +1127,18 @@
         if(room.board)setBoard(room.board);
         if(room.current)setCurrent(room.current);
         setMoveCount(room.moveCount||0);
-        if(room.status!=='playing'&&!gameOver&&room.status!=='finished'){
+        if(room.status==='playing'){
+          setMoveErr(null);
+          setWinInfo(null);
+          setDrawGame(false);
+          setGameOver(false);
+        }else if(room.status!=='finished'){
           setMoveErr(room.status==='waiting'?'Waiting for opponent to join…':'Game not active');
-        }else if(room.status==='playing')setMoveErr(null);
-        if(room.winInfo){setWinInfo(room.winInfo);setGameOver(true);}
-        else if(room.isDraw){setDrawGame(true);setGameOver(true);}
-        else{setWinInfo(null);setDrawGame(false);if(room.status==='playing')setGameOver(false);}
+        }
+        if(room.status==='finished'){
+          if(room.winInfo){setWinInfo(room.winInfo);setGameOver(true);}
+          else if(room.isDraw){setDrawGame(true);setGameOver(true);}
+        }
         if(room.lastMove){
           const lm=room.lastMove;
           const key=lm.col+'-'+lm.row+'-'+lm.at;
@@ -1143,7 +1150,7 @@
         }else setDisconnectMsg(null);
         if(room.status==='playing'&&room.guestId&&!showPostGame)setShowPostGame(false);
         if(room.status==='finished'&&!showPostGame)setTimeout(()=>setShowPostGame(true),600);
-        if(room.status==='playing'&&room.moveCount===0&&!room.winInfo&&!room.isDraw){setShowPostGame(false);setWinInfo(null);setDrawGame(false);setGameOver(false);}
+        if(room.status==='playing'&&room.moveCount===0){setShowPostGame(false);}
       });
       return()=>{unsub();};
     },[roomPath,isOnline,myRole]);
@@ -1190,18 +1197,27 @@
         const turnRole=onlineRole||myRole;
         if(!turnRole){setMoveErr('Connecting…');return;}
         if(current!==turnRole){setMoveErr('Not your turn');return;}
-        if(syncing)return;
+        if(moveBusyRef.current)return;
         setMoveErr(null);
+        moveBusyRef.current=true;
         setSyncing(true);
         try{
           const res=await FB.dropPiece(roomPath,col,turnRole,{isValidCol,dropPiece,checkWinner,isDraw,getDropRow});
           if(!res.ok){
-            if(res.reason==='not_applied')setMoveErr(current!==turnRole?'Not your turn':'Column full or game not ready');
-            else setMoveErr('Move failed — try again');
+            const msgs={
+              wrong_turn:'Not your turn',
+              not_playing:'Game is not active yet',
+              invalid_col:'That column is full',
+              no_room:'Room not found',
+              init_failed:'Firebase not connected',
+              update_failed:res.error||'Move blocked — check Firebase rules',
+            };
+            setMoveErr(msgs[res.reason]||'Move failed — try again');
           }
         }catch(e){
           setMoveErr(e.message||'Network error');
         }finally{
+          moveBusyRef.current=false;
           setSyncing(false);
         }
         return;
