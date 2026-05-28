@@ -433,7 +433,7 @@
   ═════════════════════════════════════════════*/
   function Piece({player,isNew,isWinner,shopState}){
     const shape=shopState?shopState.pieceShape:'classic';
-    const token=player===P1||player===P2?player:null;
+    const token=player===P1||player===P2||player===BOT?player:null;
     if(!token){
       return(<div style={{width:'100%',aspectRatio:'1',borderRadius:shape==='bricks'?'25%':'50%',background:'var(--col-hole)',boxShadow:'inset 0 3px 10px rgba(0,0,0,0.8),inset 0 1px 3px rgba(0,0,0,0.9)',border:'1px solid rgba(0,0,0,0.5)'}}/>);
     }
