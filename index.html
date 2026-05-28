@@ -14,13 +14,10 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* ── CSS DESIGN TOKENS ── easy to swap for your Canva theme ─────── */
     :root {
       --font-display: 'Syne', sans-serif;
       --font-body:    'Outfit', sans-serif;
       --font-mono:    'JetBrains Mono', monospace;
-
-      /* Brand palette */
       --col-bg:           #06080f;
       --col-bg2:          #0c1120;
       --col-surface:      rgba(255,255,255,0.04);
@@ -28,40 +25,31 @@
       --col-glass:        rgba(12,17,32,0.75);
       --col-border:       rgba(255,255,255,0.08);
       --col-border-hi:    rgba(255,255,255,0.15);
-
-      --col-p1:           #ff3d6b;   /* player 1  — vivid rose  */
-      --col-p1-glow:      rgba(255, 61, 107, 0.3);
+      --col-p1:           #ff3d6b;
+      --col-p1-glow:      rgba(255,61,107,0.3);
       --col-p1-dim:       #7a1a30;
-      --col-p2:           #fbbf24;   /* player 2  — golden      */
-      --col-p2-glow:      rgba(251, 191, 36, 0.3);
+      --col-p2:           #fbbf24;
+      --col-p2-glow:      rgba(251,191,36,0.3);
       --col-p2-dim:       #7a5a10;
-      --col-bot:          #a78bfa;   /* bot       — violet      */
-      --col-bot-glow:     rgba(167, 139, 250, 0.3);
-      --col-accent:       #38bdf8;   /* advisor   — sky cyan    */
-      --col-accent-glow:  rgba(56, 189, 248, 0.15);
-
+      --col-bot:          #a78bfa;
+      --col-bot-glow:     rgba(167,139,250,0.3);
+      --col-accent:       #38bdf8;
+      --col-accent-glow:  rgba(56,189,248,0.15);
       --col-board:        #0d1b36;
       --col-board-rim:    #162444;
       --col-hole:         #050c1a;
-
       --col-text:         #f0f4ff;
       --col-text-muted:   rgba(240,244,255,0.45);
       --col-text-dim:     rgba(240,244,255,0.25);
-
       --col-success:      #34d399;
       --col-danger:       #f87171;
       --col-timer:        #fbbf24;
-
-      /* Layout */
-      --board-max:  520px;
       --radius-sm:  8px;
       --radius-md:  14px;
       --radius-lg:  22px;
       --radius-xl:  32px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body, #root {
       min-height: 100vh;
       background: var(--col-bg);
@@ -69,20 +57,15 @@
       font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
     }
-
-    /* Scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--col-border-hi); border-radius: 4px; }
-
-    /* Dot-grid background texture */
     body::before {
       content: '';
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image: radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px);
       background-size: 28px 28px;
     }
-    /* Ambient glow blobs */
     body::after {
       content: '';
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -91,10 +74,7 @@
         radial-gradient(ellipse 50% 35% at 85% 75%, rgba(167,139,250,0.07) 0%, transparent 70%),
         radial-gradient(ellipse 40% 30% at 55% 50%, rgba(56,189,248,0.04) 0%, transparent 70%);
     }
-
     #root { position: relative; z-index: 1; }
-
-    /* ── Global element styles ─────────────────────────────────────── */
     input[type=text], input[type=number] {
       background: var(--col-surface-high);
       border: 1px solid var(--col-border);
@@ -113,41 +93,28 @@
       box-shadow: 0 0 0 3px var(--col-accent-glow);
     }
     input[type=range] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 4px;
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px;
       background: var(--col-border-hi);
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
+      border-radius: 2px; outline: none; cursor: pointer;
     }
     input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px; height: 18px;
-      border-radius: 50%;
+      -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
       background: var(--col-accent);
       box-shadow: 0 0 8px var(--col-accent);
-      cursor: pointer;
-      transition: transform 0.15s;
+      cursor: pointer; transition: transform 0.15s;
     }
     input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
     label {
       color: var(--col-text-muted);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      font-weight: 600;
-      display: block;
-      margin-bottom: 8px;
+      font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; font-weight: 600;
+      display: block; margin-bottom: 8px;
     }
-
     button { font-family: var(--font-body); cursor: pointer; }
     button:active:not(:disabled) { transform: scale(0.96) !important; }
 
-    /* ── Keyframes ──────────────────────────────────────────────────── */
     @keyframes dropIn {
       0%   { transform: translateY(-340%) scaleX(0.9); opacity: 0; }
       65%  { transform: translateY(6%) scaleX(1.04); opacity: 1; }
@@ -179,13 +146,9 @@
       to   { opacity: 1; }
     }
     @keyframes advisorPing {
-      0%   { transform: scale(1);    opacity: 1; }
-      60%  { transform: scale(2.2);  opacity: 0; }
-      100% { transform: scale(1);    opacity: 0; }
-    }
-    @keyframes rotateRing {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
+      0%   { transform: scale(1);   opacity: 1; }
+      60%  { transform: scale(2.2); opacity: 0; }
+      100% { transform: scale(1);   opacity: 0; }
     }
     @keyframes timerFlash {
       0%, 100% { opacity: 1; }
@@ -199,39 +162,31 @@
       from { opacity: 0; transform: translateX(-12px); }
       to   { opacity: 1; transform: translateX(0); }
     }
+    @keyframes difficultyAppear {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
+    const { useState, useEffect, useRef } = React;
 
     /* ═══════════════════════════════════════════════════════════════
-       DESIGN TOKEN BRIDGE  (mirrors CSS vars for inline styles)
+       DESIGN TOKEN BRIDGE
     ════════════════════════════════════════════════════════════════ */
     const T = {
-      p1:       'var(--col-p1)',
-      p1Glow:   'var(--col-p1-glow)',
-      p2:       'var(--col-p2)',
-      p2Glow:   'var(--col-p2-glow)',
-      bot:      'var(--col-bot)',
-      botGlow:  'var(--col-bot-glow)',
-      accent:   'var(--col-accent)',
-      accentG:  'var(--col-accent-glow)',
-      success:  'var(--col-success)',
-      danger:   'var(--col-danger)',
-      timer:    'var(--col-timer)',
-      text:     'var(--col-text)',
-      muted:    'var(--col-text-muted)',
-      dim:      'var(--col-text-dim)',
-      surface:  'var(--col-surface)',
-      surfaceH: 'var(--col-surface-high)',
-      glass:    'var(--col-glass)',
-      border:   'var(--col-border)',
-      borderHi: 'var(--col-border-hi)',
-      board:    'var(--col-board)',
-      boardRim: 'var(--col-board-rim)',
+      p1:'var(--col-p1)', p1Glow:'var(--col-p1-glow)',
+      p2:'var(--col-p2)', p2Glow:'var(--col-p2-glow)',
+      bot:'var(--col-bot)', botGlow:'var(--col-bot-glow)',
+      accent:'var(--col-accent)', accentG:'var(--col-accent-glow)',
+      success:'var(--col-success)', danger:'var(--col-danger)', timer:'var(--col-timer)',
+      text:'var(--col-text)', muted:'var(--col-text-muted)', dim:'var(--col-text-dim)',
+      surface:'var(--col-surface)', surfaceH:'var(--col-surface-high)',
+      glass:'var(--col-glass)', border:'var(--col-border)', borderHi:'var(--col-border-hi)',
+      board:'var(--col-board)', boardRim:'var(--col-board-rim)',
     };
 
     /* ═══════════════════════════════════════════════════════════════
@@ -239,11 +194,21 @@
     ════════════════════════════════════════════════════════════════ */
     const ROWS = 6, COLS = 7;
     const EMPTY = null, P1 = 'P1', P2 = 'P2', BOT = 'BOT';
-    const STORAGE_KEY = 'c4_game_state', LB_KEY = 'c4_leaderboard';
+    const STORAGE_KEY = 'c4_game_state', LB_KEY = 'c4_leaderboard_v2';
     const DEFAULT_TIMER = 15;
 
     /* ═══════════════════════════════════════════════════════════════
-       GAME LOGIC
+       DIFFICULTY CONFIG
+    ════════════════════════════════════════════════════════════════ */
+    const DIFFICULTIES = [
+      { id:'easy',   label:'Easy',   emoji:'🟢', desc:'Plays mostly random',  color:'#34d399' },
+      { id:'medium', label:'Medium', emoji:'🟡', desc:'Blocks & wins only',   color:'#fbbf24' },
+      { id:'hard',   label:'Hard',   emoji:'🟠', desc:'Heuristic strategy',   color:'#f97316' },
+      { id:'master', label:'Master', emoji:'🔴', desc:'Minimax + Alpha-Beta', color:'#f87171' },
+    ];
+
+    /* ═══════════════════════════════════════════════════════════════
+       CORE BOARD HELPERS
     ════════════════════════════════════════════════════════════════ */
     const makeBoard = () => Array(ROWS).fill(null).map(() => Array(COLS).fill(EMPTY));
 
@@ -276,17 +241,25 @@
       return null;
     }
     function isDraw(board) { return board[0].every(c => c !== EMPTY); }
-    function isValidCol(board, col) { return col>=0 && col<COLS && board[0][col]===EMPTY; }
+    function isValidCol(board, col) { return col >= 0 && col < COLS && board[0][col] === EMPTY; }
+    function getValidCols(board) { return [3,2,4,1,5,0,6].filter(c => isValidCol(board, c)); }
 
+    /* ═══════════════════════════════════════════════════════════════
+       HEURISTIC SCORING  (used by Hard + Minimax)
+    ════════════════════════════════════════════════════════════════ */
     function scoreWindow(win, player, opp) {
-      const p=win.filter(c=>c===player).length, e=win.filter(c=>c===EMPTY).length, o=win.filter(c=>c===opp).length;
-      if (o>0) return 0;
-      if (p===4) return 100; if (p===3&&e===1) return 5; if (p===2&&e===2) return 2;
+      const p=win.filter(c=>c===player).length,
+            e=win.filter(c=>c===EMPTY).length,
+            o=win.filter(c=>c===opp).length;
+      if (o > 0) return 0;
+      if (p===4) return 100;
+      if (p===3 && e===1) return 5;
+      if (p===2 && e===2) return 2;
       return 0;
     }
     function scoreBoard(board, player) {
-      const opp = player===P1?P2:P1; let score=0;
-      const cc=Math.floor(COLS/2);
+      const opp = player===P1 ? P2 : P1; let score = 0;
+      const cc = Math.floor(COLS/2);
       score += board.map(r=>r[cc]).filter(c=>c===player).length * 3;
       for (let r=0;r<ROWS;r++) for (let c=0;c<=COLS-4;c++) score+=scoreWindow(board[r].slice(c,c+4),player,opp);
       for (let c=0;c<COLS;c++) for (let r=0;r<=ROWS-4;r++) score+=scoreWindow([0,1,2,3].map(i=>board[r+i][c]),player,opp);
@@ -296,27 +269,159 @@
       }
       return score;
     }
-    function getBotMove(board, botPlayer) {
-      const opp=botPlayer===P1?P2:P1, cols=[3,2,4,1,5,0,6];
-      for (const c of cols) { if (!isValidCol(board,c)) continue; const n=dropPiece(board,c,botPlayer); if (n&&checkWinner(n)) return c; }
-      for (const c of cols) { if (!isValidCol(board,c)) continue; const n=dropPiece(board,c,opp);       if (n&&checkWinner(n)) return c; }
-      let best=-Infinity, bestCol=cols[0];
+
+    /* ═══════════════════════════════════════════════════════════════
+       MINIMAX WITH ALPHA-BETA PRUNING  (Master difficulty)
+       Depth 6 — deep enough to be nearly unbeatable, fast enough
+       to not freeze the browser.
+    ════════════════════════════════════════════════════════════════ */
+    function minimax(board, depth, alpha, beta, isMaximising, botPlayer) {
+      const opp = botPlayer === P1 ? P2 : P1;
+      const win = checkWinner(board);
+      if (win) return win.winner === botPlayer ? 100000 + depth : -(100000 + depth);
+      if (isDraw(board) || depth === 0) return scoreBoard(board, botPlayer) - scoreBoard(board, opp);
+
+      const cols = getValidCols(board);
+      if (isMaximising) {
+        let best = -Infinity;
+        for (const c of cols) {
+          const next = dropPiece(board, c, botPlayer);
+          best = Math.max(best, minimax(next, depth-1, alpha, beta, false, botPlayer));
+          alpha = Math.max(alpha, best);
+          if (alpha >= beta) break; // prune
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (const c of cols) {
+          const next = dropPiece(board, c, opp);
+          best = Math.min(best, minimax(next, depth-1, alpha, beta, true, botPlayer));
+          beta = Math.min(beta, best);
+          if (alpha >= beta) break; // prune
+        }
+        return best;
+      }
+    }
+
+    function getBotMoveMaster(board, botPlayer) {
+      const cols = getValidCols(board);
+      let bestScore = -Infinity, bestCol = cols[0];
       for (const c of cols) {
-        if (!isValidCol(board,c)) continue;
-        const n=dropPiece(board,c,botPlayer); if (!n) continue;
-        const s=scoreBoard(n,botPlayer)-scoreBoard(n,opp)*0.8;
-        if (s>best) { best=s; bestCol=c; }
+        const next = dropPiece(board, c, botPlayer);
+        const score = minimax(next, 6, -Infinity, Infinity, false, botPlayer);
+        if (score > bestScore) { bestScore = score; bestCol = c; }
       }
       return bestCol;
     }
-    const getAdvisorCol = (board, player) => getBotMove(board, player);
 
     /* ═══════════════════════════════════════════════════════════════
-       LEADERBOARD HELPERS
+       UNIFIED BOT DISPATCHER
     ════════════════════════════════════════════════════════════════ */
-    const loadLB = () => { try { return JSON.parse(localStorage.getItem(LB_KEY)) || {}; } catch { return {}; } };
-    const saveLB = lb => localStorage.setItem(LB_KEY, JSON.stringify(lb));
-    function addWin(name) { const lb=loadLB(); lb[name]=(lb[name]||0)+1; saveLB(lb); }
+    function getBotMove(board, botPlayer, difficulty = 'hard') {
+      const opp = botPlayer === P1 ? P2 : P1;
+      const cols = getValidCols(board);
+      if (cols.length === 0) return 3;
+
+      const rand = () => cols[Math.floor(Math.random() * cols.length)];
+
+      // ── EASY: 80% random, 20% smart ───────────────────────────────
+      if (difficulty === 'easy') {
+        if (Math.random() < 0.8) return rand();
+        // 20% of the time: win if possible, else block, else random
+        for (const c of cols) { const n=dropPiece(board,c,botPlayer); if(n&&checkWinner(n)) return c; }
+        for (const c of cols) { const n=dropPiece(board,c,opp);       if(n&&checkWinner(n)) return c; }
+        return rand();
+      }
+
+      // ── MEDIUM: win/block only, else random ───────────────────────
+      if (difficulty === 'medium') {
+        for (const c of cols) { const n=dropPiece(board,c,botPlayer); if(n&&checkWinner(n)) return c; }
+        for (const c of cols) { const n=dropPiece(board,c,opp);       if(n&&checkWinner(n)) return c; }
+        return rand();
+      }
+
+      // ── HARD: heuristic scoring (original algorithm) ──────────────
+      if (difficulty === 'hard') {
+        for (const c of cols) { const n=dropPiece(board,c,botPlayer); if(n&&checkWinner(n)) return c; }
+        for (const c of cols) { const n=dropPiece(board,c,opp);       if(n&&checkWinner(n)) return c; }
+        let best=-Infinity, bestCol=cols[0];
+        for (const c of cols) {
+          const n=dropPiece(board,c,botPlayer); if(!n) continue;
+          const s=scoreBoard(n,botPlayer)-scoreBoard(n,opp)*0.8;
+          if(s>best){ best=s; bestCol=c; }
+        }
+        return bestCol;
+      }
+
+      // ── MASTER: minimax with alpha-beta pruning ───────────────────
+      if (difficulty === 'master') {
+        return getBotMoveMaster(board, botPlayer);
+      }
+
+      return rand();
+    }
+
+    // Advisor always uses Hard logic regardless of bot difficulty
+    const getAdvisorCol = (board, player) => getBotMove(board, player, 'hard');
+
+    /* ═══════════════════════════════════════════════════════════════
+       LEADERBOARD v2 — full stats objects
+       Schema: { [name]: { wins, losses, draws, totalGames } }
+    ════════════════════════════════════════════════════════════════ */
+    function loadLB() {
+      try { return JSON.parse(localStorage.getItem(LB_KEY)) || {}; } catch { return {}; }
+    }
+    function saveLB(lb) { localStorage.setItem(LB_KEY, JSON.stringify(lb)); }
+
+    function ensurePlayer(lb, name) {
+      if (!lb[name]) lb[name] = { wins:0, losses:0, draws:0, totalGames:0 };
+    }
+
+    // Called at game end — records outcome for both participants
+    function recordGameResult(winnerName, loserName, isDraw, p1Name, p2Name) {
+      const lb = loadLB();
+      // Collect every participant name
+      const participants = isDraw ? [p1Name, p2Name] : [winnerName, loserName];
+      // Deduplicate (e.g. if bot somehow appears twice)
+      [...new Set(participants)].forEach(n => ensurePlayer(lb, n));
+
+      if (isDraw) {
+        [p1Name, p2Name].forEach(n => {
+          if (!n) return;
+          ensurePlayer(lb, n);
+          lb[n].draws++;
+          lb[n].totalGames++;
+        });
+      } else {
+        if (winnerName) {
+          ensurePlayer(lb, winnerName);
+          lb[winnerName].wins++;
+          lb[winnerName].totalGames++;
+        }
+        if (loserName) {
+          ensurePlayer(lb, loserName);
+          lb[loserName].losses++;
+          lb[loserName].totalGames++;
+        }
+      }
+      saveLB(lb);
+    }
+
+    function winRate(stats) {
+      if (!stats.totalGames) return 0;
+      return (stats.wins / stats.totalGames) * 100;
+    }
+
+    // Sort: primary = win rate desc, secondary = totalGames desc
+    function sortedLeaderboard() {
+      const lb = loadLB();
+      return Object.entries(lb)
+        .map(([name, s]) => ({ name, ...s, winRate: winRate(s) }))
+        .sort((a, b) => {
+          if (Math.abs(b.winRate - a.winRate) > 0.01) return b.winRate - a.winRate;
+          return b.totalGames - a.totalGames;
+        });
+    }
 
     /* ═══════════════════════════════════════════════════════════════
        PLAYER COLOR HELPER
@@ -325,7 +430,7 @@
     const playerGlow  = p => p===P1 ? T.p1Glow : p===BOT ? T.botGlow : T.p2Glow;
 
     /* ═══════════════════════════════════════════════════════════════
-       PIECE COMPONENT  — FIXED TRANSPARENCY BUG
+       PIECE COMPONENT
     ════════════════════════════════════════════════════════════════ */
     function Piece({ player, isNew, isWinner }) {
       if (!player) {
@@ -340,10 +445,8 @@
       }
       const col = playerColor(player);
       const glow = playerGlow(player);
-      
       return (
         <div style={{ position:'relative', width:'100%', aspectRatio:'1' }}>
-          {/* Outer glow ring when winning */}
           {isWinner && (
             <div style={{
               position:'absolute', inset:'-3px', borderRadius:'50%',
@@ -352,7 +455,6 @@
               color: col,
             }} />
           )}
-          {/* The piece */}
           <div style={{
             width:'100%', height:'100%', borderRadius:'50%',
             background: `radial-gradient(circle at 35% 32%, #ffffff 0%, ${col} 40%, rgba(0,0,0,0.4) 100%)`,
@@ -388,44 +490,37 @@
         <div style={{ width:'100%', height:5, background:'rgba(255,255,255,0.07)', borderRadius:3, overflow:'hidden' }}>
           <div style={{
             height:'100%', width:`${pct}%`, borderRadius:3,
-            background: col,
-            boxShadow: `0 0 8px ${col}`,
-            transition:'width 1s linear, background 0.4s ease, box-shadow 0.4s ease',
+            background: col, boxShadow: `0 0 8px ${col}`,
+            transition:'width 1s linear, background 0.4s ease',
           }} />
         </div>
       );
     }
 
     /* ═══════════════════════════════════════════════════════════════
-       GLASS MODAL OVERLAY
+       MODAL OVERLAY
     ════════════════════════════════════════════════════════════════ */
     function ModalOverlay({ children, onClose }) {
       return (
-        <div
-          onClick={onClose}
-          style={{
-            position:'fixed', inset:0, zIndex:100,
-            background:'rgba(4,6,16,0.82)',
-            backdropFilter:'blur(10px)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            padding:'16px',
-            animation:'overlayIn 0.25s ease forwards',
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background:'rgba(14,22,45,0.92)',
-              border:'1px solid var(--col-border-hi)',
-              borderRadius:'var(--radius-lg)',
-              padding:'32px 28px 28px',
-              maxWidth:440, width:'100%',
-              maxHeight:'88vh', overflowY:'auto',
-              backdropFilter:'blur(20px)',
-              boxShadow:'0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)',
-              animation:'fadeSlideUp 0.3s cubic-bezier(0.22,1,0.36,1) forwards',
-            }}
-          >
+        <div onClick={onClose} style={{
+          position:'fixed', inset:0, zIndex:100,
+          background:'rgba(4,6,16,0.82)',
+          backdropFilter:'blur(10px)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          padding:'16px',
+          animation:'overlayIn 0.25s ease forwards',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'rgba(14,22,45,0.92)',
+            border:'1px solid var(--col-border-hi)',
+            borderRadius:'var(--radius-lg)',
+            padding:'32px 28px 28px',
+            maxWidth:480, width:'100%',
+            maxHeight:'88vh', overflowY:'auto',
+            backdropFilter:'blur(20px)',
+            boxShadow:'0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)',
+            animation:'fadeSlideUp 0.3s cubic-bezier(0.22,1,0.36,1) forwards',
+          }}>
             {children}
           </div>
         </div>
@@ -433,57 +528,111 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
-       LEADERBOARD MODAL
+       LEADERBOARD MODAL  — with win rate %
     ════════════════════════════════════════════════════════════════ */
     function LeaderboardModal({ onClose }) {
-      const lb = loadLB();
-      const sorted = Object.entries(lb).sort((a,b)=>b[1]-a[1]);
+      const rows = sortedLeaderboard();
       const medals = ['🥇','🥈','🥉'];
+
+      function WinRateBar({ rate }) {
+        const col = rate >= 60 ? T.success : rate >= 40 ? T.timer : T.danger;
+        return (
+          <div style={{ flex:1, height:4, background:'rgba(255,255,255,0.07)', borderRadius:2, overflow:'hidden' }}>
+            <div style={{
+              height:'100%', width:`${Math.min(rate,100)}%`,
+              background:col, borderRadius:2,
+              boxShadow:`0 0 6px ${col}`,
+              transition:'width 0.6s ease',
+            }} />
+          </div>
+        );
+      }
 
       return (
         <ModalOverlay onClose={onClose}>
-          <div style={{ marginBottom:24 }}>
+          <div style={{ marginBottom:20 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
               <span style={{ fontSize:28 }}>🏆</span>
               <h2 style={{ fontFamily:'var(--font-display)', fontSize:26, fontWeight:800, letterSpacing:'-0.02em', color:T.text }}>
                 Leaderboard
               </h2>
             </div>
-            <p style={{ color:T.muted, fontSize:13 }}>All-time wins across every session</p>
+            <p style={{ color:T.muted, fontSize:13 }}>Sorted by win rate · all-time stats</p>
           </div>
 
-          {sorted.length === 0 ? (
+          {/* Column headers */}
+          {rows.length > 0 && (
+            <div style={{
+              display:'grid', gridTemplateColumns:'28px 1fr 52px 52px 52px 64px',
+              gap:8, padding:'0 4px 8px',
+              borderBottom:`1px solid ${T.border}`,
+              marginBottom:8,
+            }}>
+              {['','Player','W','L','D','Win %'].map((h,i) => (
+                <div key={i} style={{
+                  color:T.dim, fontSize:10, fontWeight:700,
+                  letterSpacing:'0.08em', textTransform:'uppercase',
+                  textAlign: i>=2 ? 'center' : 'left',
+                }}>{h}</div>
+              ))}
+            </div>
+          )}
+
+          {rows.length === 0 ? (
             <div style={{ textAlign:'center', padding:'32px 0', color:T.muted, fontSize:14 }}>
-              No wins recorded yet. Play a game!
+              No games recorded yet. Play a game!
             </div>
           ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {sorted.map(([name, wins], i) => (
-                <div key={name} style={{
-                  display:'flex', alignItems:'center', gap:12,
-                  padding:'12px 16px',
-                  borderRadius:'var(--radius-md)',
-                  background: i===0 ? 'rgba(251,191,36,0.08)' : T.surface,
-                  border: `1px solid ${i===0?'rgba(251,191,36,0.2)':T.border}`,
-                  animation: `statReveal 0.3s ease ${i*0.06}s both`,
-                }}>
-                  <span style={{ fontSize:20, minWidth:28, textAlign:'center' }}>
-                    {medals[i] ?? <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:T.muted }}>#{i+1}</span>}
-                  </span>
-                  <span style={{ flex:1, fontWeight:600, fontSize:15, color:T.text }}>{name}</span>
-                  <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-                    <span style={{ fontFamily:'var(--font-mono)', fontWeight:600, fontSize:20, color: i===0?T.p2:T.accent }}>{wins}</span>
-                    <span style={{ fontSize:11, color:T.muted }}>wins</span>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {rows.map((row, i) => {
+                const rate = row.winRate;
+                const rateCol = rate >= 60 ? T.success : rate >= 40 ? T.timer : T.danger;
+                return (
+                  <div key={row.name} style={{
+                    display:'grid',
+                    gridTemplateColumns:'28px 1fr 52px 52px 52px 64px',
+                    gap:8, alignItems:'center',
+                    padding:'10px 8px',
+                    borderRadius:'var(--radius-md)',
+                    background: i===0 ? 'rgba(251,191,36,0.06)' : T.surface,
+                    border: `1px solid ${i===0?'rgba(251,191,36,0.18)':T.border}`,
+                    animation: `statReveal 0.3s ease ${i*0.05}s both`,
+                  }}>
+                    {/* Rank */}
+                    <span style={{ fontSize:16, textAlign:'center' }}>
+                      {medals[i] || <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:T.dim }}>#{i+1}</span>}
+                    </span>
+                    {/* Name */}
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:14, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {row.name}
+                      </div>
+                      <div style={{ fontSize:10, color:T.dim, marginTop:2 }}>
+                        {row.totalGames} game{row.totalGames!==1?'s':''}
+                      </div>
+                    </div>
+                    {/* W */}
+                    <div style={{ textAlign:'center', fontFamily:'var(--font-mono)', fontWeight:600, fontSize:13, color:T.success }}>{row.wins}</div>
+                    {/* L */}
+                    <div style={{ textAlign:'center', fontFamily:'var(--font-mono)', fontWeight:600, fontSize:13, color:T.danger }}>{row.losses}</div>
+                    {/* D */}
+                    <div style={{ textAlign:'center', fontFamily:'var(--font-mono)', fontWeight:600, fontSize:13, color:T.muted }}>{row.draws}</div>
+                    {/* Win % */}
+                    <div style={{ textAlign:'right' }}>
+                      <span style={{ fontFamily:'var(--font-mono)', fontWeight:700, fontSize:14, color:rateCol }}>
+                        {rate.toFixed(0)}%
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           <button
             onClick={onClose}
             style={{
-              marginTop:24, width:'100%', padding:'12px',
+              marginTop:20, width:'100%', padding:'12px',
               borderRadius:'var(--radius-md)',
               border:'1px solid var(--col-border-hi)',
               background:'var(--col-surface-high)',
@@ -500,13 +649,27 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
-       POST-GAME MODAL
+       POST-GAME MODAL  — records full stats
     ════════════════════════════════════════════════════════════════ */
     function PostGameModal({ stats, onRematch, onMenu }) {
-      const { winner, moves, elapsed, p1Name, p2Name, p1Times, p2Times, isDraw: draw, mode } = stats;
+      const { winner, moves, elapsed, p1Name, p2Name, p1Times, p2Times, isDraw: draw, mode, difficulty } = stats;
       const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : '—';
       const wName = winner===P1 ? p1Name : winner===BOT ? 'Bot' : p2Name;
+      const lName = winner===P1 ? p2Name : p1Name;
       const wColor = winner ? playerColor(winner) : T.muted;
+
+      // Record stats once on mount
+      useEffect(() => {
+        if (draw) {
+          recordGameResult(null, null, true, p1Name, p2Name);
+        } else if (winner) {
+          const winN = winner===P1 ? p1Name : (winner===BOT ? 'Bot' : p2Name);
+          const loseN = winner===P1 ? p2Name : p1Name;
+          recordGameResult(winN, loseN, false, p1Name, p2Name);
+        }
+      }, []);
+
+      const diffInfo = DIFFICULTIES.find(d => d.id === difficulty);
 
       function getCommentary() {
         if (draw) return "A perfectly balanced match! Neither side gave an inch. True rivals.";
@@ -514,20 +677,19 @@
         const fast = a1!=='—'&&a2!=='—'&&a1<a2 ? p1Name : p2Name;
         if (moves < 14) return `Lightning fast! ${wName} secured the win in just ${moves} moves. Decisive and ruthless.`;
         if (moves > 30) return `A grueling war of attrition across ${moves} moves. ${wName} outlasted the pressure to claim victory.`;
-        if (a1!=='—'&&a2!=='—'&&Math.abs(a1-a2)>5) return `${fast} played with blazing speed while their opponent took time to think. ${wName} took the win.`;
-        return `A well-contested match! ${wName} read the board brilliantly and connected four to clinch it in ${moves} moves.`;
+        if (a1!=='—'&&a2!=='—'&&Math.abs(a1-a2)>5) return `${fast} played with blazing speed while their opponent deliberated. ${wName} took the win.`;
+        return `A well-contested match! ${wName} read the board brilliantly and connected four in ${moves} moves.`;
       }
 
       const statItems = [
-        { label:'Total Moves',  val: moves,     icon:'🎯' },
+        { label:'Total Moves',  val:moves,        icon:'🎯' },
         { label:'Time Elapsed', val:`${elapsed}s`, icon:'⏱' },
-        { label:`${p1Name} avg/move`, val:`${avg(p1Times)}s`, icon:'🔴' },
-        { label:`${mode===2?p2Name:'Bot'} avg/move`, val:`${avg(p2Times)}s`, icon: mode===2?'🟡':'🤖' },
+        { label:`${p1Name} avg`, val:`${avg(p1Times)}s`, icon:'🔴' },
+        { label:`${mode===2?p2Name:'Bot'} avg`,   val:`${avg(p2Times)}s`, icon:mode===2?'🟡':'🤖' },
       ];
 
       return (
         <ModalOverlay>
-          {/* Winner badge */}
           <div style={{ textAlign:'center', marginBottom:24 }}>
             <div style={{
               display:'inline-flex', alignItems:'center', justifyContent:'center',
@@ -548,22 +710,29 @@
             }}>
               {draw ? "It's a Draw!" : `${wName} Wins!`}
             </h2>
-            <p style={{
-              color:T.muted, fontSize:13, lineHeight:1.6,
-              fontStyle:'italic', maxWidth:320, margin:'0 auto',
-            }}>
+            <p style={{ color:T.muted, fontSize:13, lineHeight:1.6, fontStyle:'italic', maxWidth:320, margin:'0 auto' }}>
               {getCommentary()}
             </p>
+            {/* Difficulty badge */}
+            {mode===1 && diffInfo && (
+              <div style={{
+                display:'inline-flex', alignItems:'center', gap:6,
+                marginTop:10, padding:'4px 12px', borderRadius:99,
+                background:`${diffInfo.color}18`,
+                border:`1px solid ${diffInfo.color}44`,
+                fontSize:12, color:diffInfo.color, fontWeight:700,
+              }}>
+                {diffInfo.emoji} {diffInfo.label} Bot
+              </div>
+            )}
           </div>
 
-          {/* Stats grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
             {statItems.map(({ label, val, icon }, i) => (
               <div key={label} style={{
                 padding:'14px 16px',
                 borderRadius:'var(--radius-md)',
-                background:T.surface,
-                border:`1px solid ${T.border}`,
+                background:T.surface, border:`1px solid ${T.border}`,
                 animation:`statReveal 0.35s ease ${i*0.08}s both`,
               }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
@@ -575,32 +744,25 @@
             ))}
           </div>
 
-          {/* CTA buttons */}
           <div style={{ display:'flex', gap:10 }}>
-            <button
-              onClick={onRematch}
-              style={{
-                flex:1, padding:'13px', borderRadius:'var(--radius-md)',
-                border:'none',
-                background:`linear-gradient(135deg, var(--col-accent) 0%, #0ea5e9 100%)`,
-                color:'#02080f', fontWeight:700, fontSize:15,
-                boxShadow:'0 4px 20px rgba(56,189,248,0.4)',
-                transition:'all 0.15s',
-              }}
-              onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.02)'; e.currentTarget.style.boxShadow='0 6px 28px rgba(56,189,248,0.55)'; }}
-              onMouseLeave={e=>{ e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.boxShadow='0 4px 20px rgba(56,189,248,0.4)'; }}
+            <button onClick={onRematch} style={{
+              flex:1, padding:'13px', borderRadius:'var(--radius-md)',
+              border:'none',
+              background:'linear-gradient(135deg, var(--col-accent) 0%, #0ea5e9 100%)',
+              color:'#02080f', fontWeight:700, fontSize:15,
+              boxShadow:'0 4px 20px rgba(56,189,248,0.4)', transition:'all 0.15s',
+            }}
+              onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.02)'; }}
+              onMouseLeave={e=>{ e.currentTarget.style.transform='scale(1)'; }}
             >
               Rematch
             </button>
-            <button
-              onClick={onMenu}
-              style={{
-                flex:1, padding:'13px', borderRadius:'var(--radius-md)',
-                border:'1px solid var(--col-border-hi)',
-                background:'var(--col-surface-high)',
-                color:T.text, fontWeight:600, fontSize:15,
-                transition:'all 0.15s',
-              }}
+            <button onClick={onMenu} style={{
+              flex:1, padding:'13px', borderRadius:'var(--radius-md)',
+              border:'1px solid var(--col-border-hi)',
+              background:'var(--col-surface-high)',
+              color:T.text, fontWeight:600, fontSize:15, transition:'all 0.15s',
+            }}
               onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--col-surface-high)'}
             >
@@ -617,19 +779,15 @@
     function PlayerCard({ name, color, glow, active, right }) {
       return (
         <div style={{
-          flex:1,
-          padding:'10px 14px',
+          flex:1, padding:'10px 14px',
           borderRadius:'var(--radius-md)',
-          background: active ? `rgba(255,255,255,0.06)` : T.surface,
+          background: active ? 'rgba(255,255,255,0.06)' : T.surface,
           border:`1px solid ${active ? color : T.border}`,
           boxShadow: active ? `0 0 20px ${glow}` : 'none',
           transition:'all 0.3s ease',
           textAlign: right ? 'right' : 'left',
         }}>
-          <div style={{
-            display:'flex', alignItems:'center', gap:8,
-            flexDirection: right ? 'row-reverse' : 'row',
-          }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexDirection:right?'row-reverse':'row' }}>
             <div style={{
               width:12, height:12, borderRadius:'50%', flexShrink:0,
               background:color,
@@ -638,7 +796,7 @@
             }} />
             <div style={{
               color: active ? T.text : T.muted,
-              fontSize:13, fontWeight: active ? 700 : 400,
+              fontSize:13, fontWeight:active?700:400,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:110,
               transition:'color 0.3s',
             }}>
@@ -647,9 +805,9 @@
           </div>
           {active && (
             <div style={{
-              marginTop:5, fontSize:10, color:color, fontWeight:600,
+              marginTop:5, fontSize:10, color, fontWeight:600,
               letterSpacing:'0.08em', textTransform:'uppercase',
-              textAlign: right ? 'right' : 'left',
+              textAlign:right?'right':'left',
             }}>
               Your turn
             </div>
@@ -659,53 +817,85 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
+       ADVISOR BUTTON
+    ════════════════════════════════════════════════════════════════ */
+    function AdvisorButton({ onAdvisor, used, disabled }) {
+      const [hover, setHover] = useState(false);
+      return (
+        <button
+          onClick={onAdvisor}
+          disabled={disabled || used}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          style={{
+            display:'flex', alignItems:'center', gap:8,
+            padding:'10px 20px', borderRadius:'var(--radius-md)',
+            border: used ? `1px solid ${T.border}` : `1px solid ${hover?'var(--col-accent)':'rgba(56,189,248,0.35)'}`,
+            background: used ? T.surface : hover ? 'rgba(56,189,248,0.12)' : 'rgba(56,189,248,0.06)',
+            color: used ? T.dim : T.accent,
+            fontWeight:700, fontSize:14,
+            opacity:(disabled||used)?0.45:1,
+            cursor:(disabled||used)?'not-allowed':'pointer',
+            transition:'all 0.18s',
+            boxShadow:(!used&&hover)?'0 0 20px rgba(56,189,248,0.25)':'none',
+            position:'relative', overflow:'hidden',
+          }}
+        >
+          {!used && hover && (
+            <div style={{
+              position:'absolute', inset:0,
+              background:'linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.1) 50%, transparent 100%)',
+              backgroundSize:'200% 100%', animation:'shimmer 1.2s linear infinite',
+            }} />
+          )}
+          <span style={{ fontSize:16, position:'relative' }}>{used?'✓':'💡'}</span>
+          <span style={{ position:'relative' }}>{used?'Advisor Used':'Ask Advisor'}</span>
+        </button>
+      );
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
        SETUP SCREEN
     ════════════════════════════════════════════════════════════════ */
     function SetupScreen({ onStart, savedGame }) {
-      const [mode, setMode] = useState(1);
-      const [p1Name, setP1Name] = useState('Player 1');
-      const [p2Name, setP2Name] = useState('Player 2');
+      const [mode, setMode]         = useState(1);
+      const [p1Name, setP1Name]     = useState('Player 1');
+      const [p2Name, setP2Name]     = useState('Player 2');
       const [timerSec, setTimerSec] = useState(DEFAULT_TIMER);
+      const [difficulty, setDiff]   = useState('hard');
 
       const orbs = [T.p1, T.p2, T.bot, T.accent];
+      const selDiff = DIFFICULTIES.find(d => d.id === difficulty);
 
       return (
         <div style={{
           minHeight:'100vh', display:'flex', flexDirection:'column',
           alignItems:'center', justifyContent:'center', padding:'32px 16px',
         }}>
-          {/* ── Hero logo ── */}
+          {/* Hero */}
           <div style={{ textAlign:'center', marginBottom:48 }}>
             <div style={{ display:'flex', gap:10, justifyContent:'center', marginBottom:18 }}>
               {orbs.map((c,i) => (
                 <div key={i} style={{
                   width:16, height:16, borderRadius:'50%',
                   background:`radial-gradient(circle at 35% 30%, #fff, ${c})`,
-                  backgroundColor: c,
+                  backgroundColor:c,
                   boxShadow:`0 0 12px ${c}, 0 0 24px rgba(255,255,255,0.2)`,
                   animation:`float 2s ease-in-out ${i*0.25}s infinite`,
                 }} />
               ))}
             </div>
-
             <h1 style={{
               fontFamily:'var(--font-display)', fontWeight:800,
-              fontSize:'clamp(36px, 8vw, 52px)',
-              letterSpacing:'-0.04em',
-              color:T.text,
-              marginBottom:6,
+              fontSize:'clamp(36px,8vw,52px)', letterSpacing:'-0.04em', color:T.text, marginBottom:6,
             }}>
               Connect Four
             </h1>
-            <p style={{
-              color:T.muted, fontSize:14, letterSpacing:'0.12em',
-              textTransform:'uppercase', fontWeight:500,
-            }}>
+            <p style={{ color:T.muted, fontSize:14, letterSpacing:'0.12em', textTransform:'uppercase', fontWeight:500 }}>
               Strategy · Speed · Smarts
             </p>
           </div>
 
-          {/* ── Config card ── */}
           <div style={{
             width:'100%', maxWidth:420,
             background:'rgba(12,17,32,0.7)',
@@ -714,7 +904,7 @@
             padding:'32px 28px',
             backdropFilter:'blur(16px)',
             boxShadow:'0 24px 64px rgba(0,0,0,0.5)',
-            display:'flex', flexDirection:'column', gap:24,
+            display:'flex', flexDirection:'column', gap:22,
           }}>
 
             {/* Resume banner */}
@@ -724,9 +914,7 @@
                 background:'rgba(56,189,248,0.07)',
                 border:'1px solid rgba(56,189,248,0.25)',
               }}>
-                <p style={{ color:T.accent, fontWeight:700, fontSize:14, marginBottom:4 }}>
-                  ⚡ Resume saved game?
-                </p>
+                <p style={{ color:T.accent, fontWeight:700, fontSize:14, marginBottom:4 }}>⚡ Resume saved game?</p>
                 <p style={{ color:T.muted, fontSize:12, marginBottom:12 }}>
                   {savedGame.p1Name} vs {savedGame.mode===2?savedGame.p2Name:'Bot'} · Move {savedGame.moveCount}
                 </p>
@@ -736,8 +924,7 @@
                     width:'100%', padding:'10px', borderRadius:'var(--radius-sm)',
                     border:'1px solid rgba(56,189,248,0.4)',
                     background:'rgba(56,189,248,0.1)',
-                    color:T.accent, fontWeight:700, fontSize:14,
-                    transition:'all 0.15s',
+                    color:T.accent, fontWeight:700, fontSize:14, transition:'all 0.15s',
                   }}
                   onMouseEnter={e=>e.currentTarget.style.background='rgba(56,189,248,0.18)'}
                   onMouseLeave={e=>e.currentTarget.style.background='rgba(56,189,248,0.1)'}
@@ -755,18 +942,15 @@
                   { id:1, emoji:'🤖', label:'vs Bot', desc:'You vs AI' },
                   { id:2, emoji:'👥', label:'vs Player', desc:'Local 2P' },
                 ].map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => setMode(m.id)}
-                    style={{
-                      padding:'14px 12px', borderRadius:'var(--radius-md)',
-                      border:`1px solid ${mode===m.id?T.accent:T.border}`,
-                      background: mode===m.id ? 'rgba(56,189,248,0.1)' : T.surface,
-                      color: mode===m.id ? T.accent : T.muted,
-                      transition:'all 0.18s',
-                      boxShadow: mode===m.id ? '0 0 16px rgba(56,189,248,0.12)' : 'none',
-                      textAlign:'center',
-                    }}
+                  <button key={m.id} onClick={() => setMode(m.id)} style={{
+                    padding:'14px 12px', borderRadius:'var(--radius-md)',
+                    border:`1px solid ${mode===m.id?T.accent:T.border}`,
+                    background: mode===m.id ? 'rgba(56,189,248,0.1)' : T.surface,
+                    color: mode===m.id ? T.accent : T.muted,
+                    transition:'all 0.18s',
+                    boxShadow: mode===m.id ? '0 0 16px rgba(56,189,248,0.12)' : 'none',
+                    textAlign:'center',
+                  }}
                     onMouseEnter={e=>{ if(mode!==m.id) e.currentTarget.style.borderColor=T.borderHi; }}
                     onMouseLeave={e=>{ if(mode!==m.id) e.currentTarget.style.borderColor=T.border; }}
                   >
@@ -778,8 +962,54 @@
               </div>
             </div>
 
+            {/* Bot Difficulty — only shown in vs Bot mode */}
+            {mode === 1 && (
+              <div style={{ animation:'difficultyAppear 0.25s ease forwards' }}>
+                <label>Bot Difficulty</label>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                  {DIFFICULTIES.map(d => {
+                    const active = difficulty === d.id;
+                    return (
+                      <button key={d.id} onClick={() => setDiff(d.id)} style={{
+                        padding:'11px 10px', borderRadius:'var(--radius-md)',
+                        border:`1px solid ${active ? d.color : T.border}`,
+                        background: active ? `${d.color}14` : T.surface,
+                        color: active ? d.color : T.muted,
+                        transition:'all 0.15s', textAlign:'center',
+                        boxShadow: active ? `0 0 14px ${d.color}22` : 'none',
+                      }}
+                        onMouseEnter={e=>{ if(!active){ e.currentTarget.style.borderColor=d.color+'55'; e.currentTarget.style.color=d.color+'aa'; }}}
+                        onMouseLeave={e=>{ if(!active){ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.muted; }}}
+                      >
+                        <div style={{ fontSize:18, marginBottom:3 }}>{d.emoji}</div>
+                        <div style={{ fontWeight:700, fontSize:13 }}>{d.label}</div>
+                        <div style={{ fontSize:10, opacity:0.65, marginTop:2 }}>{d.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Selected difficulty description pill */}
+                {selDiff && (
+                  <div style={{
+                    marginTop:8, padding:'6px 12px', borderRadius:99,
+                    background:`${selDiff.color}12`,
+                    border:`1px solid ${selDiff.color}33`,
+                    display:'flex', alignItems:'center', gap:8,
+                    fontSize:12, color:selDiff.color,
+                  }}>
+                    <span>{selDiff.emoji}</span>
+                    <span style={{ fontWeight:600 }}>{selDiff.label}:</span>
+                    <span style={{ opacity:0.8 }}>{selDiff.desc}</span>
+                    {selDiff.id === 'master' && (
+                      <span style={{ marginLeft:'auto', fontSize:10, opacity:0.6 }}>Minimax d=6</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Names */}
-            <div style={{ display:'grid', gridTemplateColumns: mode===2?'1fr 1fr':'1fr', gap:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:mode===2?'1fr 1fr':'1fr', gap:12 }}>
               <div>
                 <label>🔴 {mode===2?'Player 1':'Your Name'}</label>
                 <input type="text" value={p1Name} onChange={e=>setP1Name(e.target.value||'Player 1')} />
@@ -798,11 +1028,7 @@
                 <span>Turn Timer</span>
                 <span style={{ fontFamily:'var(--font-mono)', color:T.accent, letterSpacing:'normal', textTransform:'none' }}>{timerSec}s</span>
               </label>
-              <input
-                type="range" min={5} max={60} step={5}
-                value={timerSec}
-                onChange={e=>setTimerSec(Number(e.target.value))}
-              />
+              <input type="range" min={5} max={60} step={5} value={timerSec} onChange={e=>setTimerSec(Number(e.target.value))} />
               <div style={{ display:'flex', justifyContent:'space-between', marginTop:4, color:T.dim, fontSize:11 }}>
                 <span>5s (fast)</span><span>30s</span><span>60s (chill)</span>
               </div>
@@ -810,16 +1036,13 @@
 
             {/* Start CTA */}
             <button
-              onClick={() => onStart({ mode, p1Name:p1Name||'Player 1', p2Name:p2Name||'Player 2', timerSec })}
+              onClick={() => onStart({ mode, p1Name:p1Name||'Player 1', p2Name:p2Name||'Player 2', timerSec, difficulty })}
               style={{
-                width:'100%', padding:'15px',
-                borderRadius:'var(--radius-md)',
+                width:'100%', padding:'15px', borderRadius:'var(--radius-md)',
                 border:'none',
                 background:'linear-gradient(135deg, var(--col-accent) 0%, #0ea5e9 100%)',
-                color:'#020c16', fontWeight:800, fontSize:16,
-                letterSpacing:'0.02em',
-                boxShadow:'0 6px 28px rgba(56,189,248,0.45)',
-                transition:'all 0.18s',
+                color:'#020c16', fontWeight:800, fontSize:16, letterSpacing:'0.02em',
+                boxShadow:'0 6px 28px rgba(56,189,248,0.45)', transition:'all 0.18s',
               }}
               onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 10px 36px rgba(56,189,248,0.6)'; }}
               onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 6px 28px rgba(56,189,248,0.45)'; }}
@@ -832,86 +1055,44 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
-       ADVISOR BUTTON
-    ════════════════════════════════════════════════════════════════ */
-    function AdvisorButton({ onAdvisor, used, disabled }) {
-      const [hover, setHover] = useState(false);
-
-      return (
-        <button
-          onClick={onAdvisor}
-          disabled={disabled || used}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-          style={{
-            display:'flex', alignItems:'center', gap:8,
-            padding:'10px 20px',
-            borderRadius:'var(--radius-md)',
-            border: used ? `1px solid ${T.border}` : `1px solid ${hover?'var(--col-accent)':'rgba(56,189,248,0.35)'}`,
-            background: used ? T.surface : hover ? 'rgba(56,189,248,0.12)' : 'rgba(56,189,248,0.06)',
-            color: used ? T.dim : T.accent,
-            fontWeight:700, fontSize:14,
-            opacity: (disabled || used) ? 0.45 : 1,
-            cursor: (disabled || used) ? 'not-allowed' : 'pointer',
-            transition:'all 0.18s',
-            boxShadow: (!used && hover) ? '0 0 20px rgba(56,189,248,0.25)' : 'none',
-            position:'relative', overflow:'hidden',
-          }}
-        >
-          {!used && hover && (
-            <div style={{
-              position:'absolute', inset:0,
-              background:'linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.1) 50%, transparent 100%)',
-              backgroundSize:'200% 100%',
-              animation:'shimmer 1.2s linear infinite',
-            }} />
-          )}
-          <span style={{ fontSize:16, position:'relative' }}>
-            {used ? '✓' : '💡'}
-          </span>
-          <span style={{ position:'relative' }}>
-            {used ? 'Advisor Used' : 'Ask Advisor'}
-          </span>
-        </button>
-      );
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
        GAME SCREEN
     ════════════════════════════════════════════════════════════════ */
     function GameScreen({ config, onMenu }) {
-      const { mode, p1Name, p2Name, timerSec } = config;
+      const { mode, p1Name, p2Name, timerSec, difficulty='hard' } = config;
       const p2Label = mode===2 ? p2Name : 'Bot';
       const p2Token = mode===2 ? P2 : BOT;
 
-      const [board, setBoard]       = useState(makeBoard());
-      const [current, setCurrent]   = useState(P1);
-      const [winInfo, setWinInfo]   = useState(null);
-      const [drawGame, setDrawGame] = useState(false);
-      const [newCell, setNewCell]   = useState(null);
-      const [hoverCol, setHoverCol] = useState(null);
-      const [advisorCol, setAdvisorCol]   = useState(null);
+      const [board, setBoard]           = useState(makeBoard());
+      const [current, setCurrent]       = useState(P1);
+      const [winInfo, setWinInfo]       = useState(null);
+      const [drawGame, setDrawGame]     = useState(false);
+      const [newCell, setNewCell]       = useState(null);
+      const [hoverCol, setHoverCol]     = useState(null);
+      const [advisorCol, setAdvisorCol] = useState(null);
       const [advisorUsed, setAdvisorUsed] = useState(false);
-      const [timerLeft, setTimerLeft] = useState(timerSec);
+      const [timerLeft, setTimerLeft]   = useState(timerSec);
       const [showLB, setShowLB]         = useState(false);
       const [showPostGame, setShowPostGame] = useState(false);
       const [moveCount, setMoveCount]   = useState(0);
-      const [gameStart]   = useState(Date.now());
-      const [p1Times, setP1Times] = useState([]);
-      const [p2Times, setP2Times] = useState([]);
-      const [turnStart, setTurnStart] = useState(Date.now());
-      const [gameOver, setGameOver]   = useState(false);
-      const timerRef    = useRef(null);
-      const botTimeout  = useRef(null);
+      const [gameStart]                 = useState(Date.now());
+      const [p1Times, setP1Times]       = useState([]);
+      const [p2Times, setP2Times]       = useState([]);
+      const [turnStart, setTurnStart]   = useState(Date.now());
+      const [gameOver, setGameOver]     = useState(false);
+      const timerRef   = useRef(null);
+      const botTimeout = useRef(null);
 
       const isBotTurn = mode===1 && current===BOT;
+      const diffInfo  = DIFFICULTIES.find(d => d.id === difficulty);
 
+      // Persist state
       useEffect(() => {
         if (gameOver) { localStorage.removeItem(STORAGE_KEY); return; }
-        const s = { board, current, p1Name, p2Name, timerSec, timerLeft, moveCount, p1Times, p2Times, mode, turnStart: Date.now() };
+        const s = { board, current, p1Name, p2Name, timerSec, timerLeft, moveCount, p1Times, p2Times, mode, difficulty, turnStart:Date.now() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
       }, [board, current, timerLeft]);
 
+      // Timer
       useEffect(() => {
         if (gameOver) return;
         clearInterval(timerRef.current);
@@ -926,11 +1107,14 @@
         return () => clearInterval(timerRef.current);
       }, [current, gameOver]);
 
+      // Bot move
       useEffect(() => {
         if (!isBotTurn || gameOver) return;
+        // Master is slower due to minimax; give it a slightly longer "thinking" delay for UX
+        const delay = difficulty === 'master' ? 200 : 800;
         botTimeout.current = setTimeout(() => {
-          doMove(getBotMove(board, BOT), BOT);
-        }, 800);
+          doMove(getBotMove(board, BOT, difficulty), BOT);
+        }, delay);
         return () => clearTimeout(botTimeout.current);
       }, [current, gameOver]);
 
@@ -958,7 +1142,6 @@
         const win = checkWinner(next);
         if (win) {
           setWinInfo(win); setGameOver(true);
-          addWin(player===P1 ? p1Name : p2Label);
           setTimeout(() => setShowPostGame(true), 950);
           return;
         }
@@ -990,41 +1173,40 @@
           alignItems:'center', padding:'20px 12px 32px', position:'relative',
         }}>
 
-          {/* ── Top nav bar ── */}
+          {/* Top nav */}
           <div style={{
             width:'100%', maxWidth:560,
             display:'flex', alignItems:'center', justifyContent:'space-between',
             marginBottom:20,
           }}>
-            <button
-              onClick={onMenu}
-              style={{
-                padding:'8px 14px', borderRadius:'var(--radius-sm)',
-                border:'1px solid var(--col-border)',
-                background:T.surface, color:T.muted, fontSize:13, fontWeight:600,
-                transition:'all 0.15s',
-              }}
+            <button onClick={onMenu} style={{
+              padding:'8px 14px', borderRadius:'var(--radius-sm)',
+              border:'1px solid var(--col-border)',
+              background:T.surface, color:T.muted, fontSize:13, fontWeight:600, transition:'all 0.15s',
+            }}
               onMouseEnter={e=>{ e.currentTarget.style.borderColor=T.borderHi; e.currentTarget.style.color=T.text; }}
               onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.muted; }}
             >
               ← Menu
             </button>
 
-            <h1 style={{
-              fontFamily:'var(--font-display)', fontWeight:800, fontSize:20,
-              letterSpacing:'-0.03em', color:T.text,
-            }}>
-              Connect Four
-            </h1>
+            <div style={{ textAlign:'center' }}>
+              <h1 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:20, letterSpacing:'-0.03em', color:T.text }}>
+                Connect Four
+              </h1>
+              {/* Difficulty badge in header for bot mode */}
+              {mode===1 && diffInfo && (
+                <div style={{ fontSize:11, color:diffInfo.color, fontWeight:600, marginTop:2 }}>
+                  {diffInfo.emoji} {diffInfo.label} Bot
+                </div>
+              )}
+            </div>
 
-            <button
-              onClick={() => setShowLB(true)}
-              style={{
-                padding:'8px 14px', borderRadius:'var(--radius-sm)',
-                border:`1px solid rgba(251,191,36,0.3)`,
-                background:'rgba(251,191,36,0.06)', color:T.p2, fontSize:13, fontWeight:700,
-                transition:'all 0.15s',
-              }}
+            <button onClick={() => setShowLB(true)} style={{
+              padding:'8px 14px', borderRadius:'var(--radius-sm)',
+              border:'1px solid rgba(251,191,36,0.3)',
+              background:'rgba(251,191,36,0.06)', color:T.p2, fontSize:13, fontWeight:700, transition:'all 0.15s',
+            }}
               onMouseEnter={e=>{ e.currentTarget.style.background='rgba(251,191,36,0.12)'; }}
               onMouseLeave={e=>{ e.currentTarget.style.background='rgba(251,191,36,0.06)'; }}
             >
@@ -1032,27 +1214,14 @@
             </button>
           </div>
 
-          {/* ── Player cards + timer ── */}
+          {/* Player cards + timer */}
           <div style={{ width:'100%', maxWidth:560, marginBottom:16, display:'flex', flexDirection:'column', gap:10 }}>
             <div style={{ display:'flex', gap:10, alignItems:'stretch' }}>
-              <PlayerCard
-                name={p1Name} color={T.p1} glow={T.p1Glow}
-                active={current===P1 && !gameOver}
-              />
-              <div style={{
-                display:'flex', alignItems:'center', justifyContent:'center',
-                padding:'0 6px', color:T.dim, fontSize:12, fontWeight:700,
-                letterSpacing:'0.1em',
-              }}>
+              <PlayerCard name={p1Name} color={T.p1} glow={T.p1Glow} active={current===P1 && !gameOver} />
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'0 6px', color:T.dim, fontSize:12, fontWeight:700, letterSpacing:'0.1em' }}>
                 VS
               </div>
-              <PlayerCard
-                name={p2Label}
-                color={mode===2 ? T.p2 : T.bot}
-                glow={mode===2 ? T.p2Glow : T.botGlow}
-                active={current!==P1 && !gameOver}
-                right
-              />
+              <PlayerCard name={p2Label} color={mode===2?T.p2:T.bot} glow={mode===2?T.p2Glow:T.botGlow} active={current!==P1 && !gameOver} right />
             </div>
 
             {/* Timer strip */}
@@ -1073,18 +1242,14 @@
                         boxShadow:`0 0 6px ${T.bot}`,
                       }} />
                     )}
-                    <span style={{
-                      fontSize:12, fontWeight:700,
-                      color: isBotTurn ? T.bot : curColor,
-                      letterSpacing:'0.06em', textTransform:'uppercase',
-                    }}>
-                      {isBotTurn ? 'Bot thinking…' : `${current===P1?p1Name:p2Label}'s turn`}
+                    <span style={{ fontSize:12, fontWeight:700, color:isBotTurn?T.bot:curColor, letterSpacing:'0.06em', textTransform:'uppercase' }}>
+                      {isBotTurn ? `Bot thinking… (${diffInfo?.label||''})` : `${current===P1?p1Name:p2Label}'s turn`}
                     </span>
                   </div>
                   <span style={{
                     fontFamily:'var(--font-mono)', fontWeight:600, fontSize:16,
-                    color: timerLeft<=5 ? T.danger : timerLeft<=10 ? T.timer : T.muted,
-                    animation: timerLeft<=5 ? 'timerFlash 0.5s ease-in-out infinite' : 'none',
+                    color:timerLeft<=5?T.danger:timerLeft<=10?T.timer:T.muted,
+                    animation:timerLeft<=5?'timerFlash 0.5s ease-in-out infinite':'none',
                   }}>
                     {timerLeft}s
                   </span>
@@ -1095,10 +1260,10 @@
               <div style={{
                 textAlign:'center', padding:'12px',
                 borderRadius:'var(--radius-md)',
-                background: drawGame ? T.surface : `${winInfo?playerColor(winInfo.winner):T.muted}14`,
+                background:drawGame ? T.surface : `${winInfo?playerColor(winInfo.winner):T.muted}14`,
                 border:`1px solid ${drawGame?T.border:winInfo?playerColor(winInfo.winner):T.muted}44`,
                 fontWeight:800, fontSize:16,
-                color: drawGame ? T.muted : winInfo ? playerColor(winInfo.winner) : T.muted,
+                color:drawGame?T.muted:winInfo?playerColor(winInfo.winner):T.muted,
               }}>
                 {drawGame ? "🤝 It's a Draw!" : `🎉 ${winInfo?.winner===P1?p1Name:p2Label} wins!`}
               </div>
@@ -1110,32 +1275,28 @@
             onMouseLeave={() => setHoverCol(null)}
             style={{
               width:'100%', maxWidth:560,
-              background: 'linear-gradient(160deg, #0e1f3d 0%, #091628 100%)',
+              background:'linear-gradient(160deg, #0e1f3d 0%, #091628 100%)',
               borderRadius:'var(--radius-xl)',
               padding:'14px 14px 10px',
               border:'2px solid var(--col-board-rim)',
-              boxShadow:`
-                0 24px 64px rgba(0,0,0,0.7),
-                0 0 0 1px rgba(255,255,255,0.04),
-                inset 0 1px 0 rgba(255,255,255,0.06)
-              `,
+              boxShadow:`0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)`,
               position:'relative',
             }}
           >
-            {/* Column hover / advisor indicators */}
+            {/* Drop indicators */}
             <div style={{ display:'grid', gridTemplateColumns:`repeat(${COLS},1fr)`, gap:6, marginBottom:6, height:16 }}>
               {Array(COLS).fill(0).map((_,c) => {
                 const isAdvisor = advisorCol===c;
                 const isHov = hoverCol===c && !isBotTurn && !gameOver && isValidCol(board,c);
                 return (
                   <div key={c} style={{ display:'flex', justifyContent:'center', alignItems:'center', position:'relative' }}>
-                    {(isAdvisor || isHov) && (
+                    {(isAdvisor||isHov) && (
                       <>
                         <div style={{
                           width:10, height:10, borderRadius:'50%',
-                          background: isAdvisor ? T.accent : curColor,
-                          boxShadow: isAdvisor ? `0 0 10px ${T.accent}` : `0 0 8px ${curColor}`,
-                          animation: isAdvisor ? 'colHoverBounce 0.6s ease-in-out infinite' : 'colHoverBounce 0.8s ease-in-out infinite',
+                          background:isAdvisor?T.accent:curColor,
+                          boxShadow:isAdvisor?`0 0 10px ${T.accent}`:`0 0 8px ${curColor}`,
+                          animation:isAdvisor?'colHoverBounce 0.6s ease-in-out infinite':'colHoverBounce 0.8s ease-in-out infinite',
                         }} />
                         {isAdvisor && (
                           <div style={{
@@ -1151,40 +1312,27 @@
               })}
             </div>
 
-            {/* Grid rows */}
+            {/* Grid */}
             {board.map((row, r) => (
-              <div
-                key={r}
-                style={{
-                  display:'grid',
-                  gridTemplateColumns:`repeat(${COLS},1fr)`,
-                  gap:6,
-                  marginBottom: r<ROWS-1 ? 6 : 0,
-                }}
-              >
+              <div key={r} style={{
+                display:'grid', gridTemplateColumns:`repeat(${COLS},1fr)`,
+                gap:6, marginBottom:r<ROWS-1?6:0,
+              }}>
                 {row.map((cell, c) => {
                   const isWinCell = winInfo?.cells.some(([wr,wc])=>wr===r&&wc===c);
                   const isNew = newCell?.[0]===r && newCell?.[1]===c;
                   const isHovCol = hoverCol===c && !isBotTurn && !gameOver && isValidCol(board,c);
                   const isAdvCol = advisorCol===c && !cell;
-
                   return (
-                    <div
-                      key={c}
+                    <div key={c}
                       onClick={() => handleColClick(c)}
                       onMouseEnter={() => setHoverCol(c)}
                       style={{
-                        borderRadius:'var(--radius-sm)',
-                        padding:3,
-                        cursor: (!gameOver&&!isBotTurn&&isValidCol(board,c)) ? 'pointer' : 'default',
-                        background: isAdvCol
-                          ? 'rgba(56,189,248,0.08)'
-                          : isHovCol
-                          ? 'rgba(255,255,255,0.04)'
-                          : 'transparent',
-                        outline: isAdvCol ? `1.5px solid rgba(56,189,248,0.3)` : 'none',
-                        outlineOffset: -2,
-                        transition:'background 0.15s',
+                        borderRadius:'var(--radius-sm)', padding:3,
+                        cursor:(!gameOver&&!isBotTurn&&isValidCol(board,c))?'pointer':'default',
+                        background:isAdvCol?'rgba(56,189,248,0.08)':isHovCol?'rgba(255,255,255,0.04)':'transparent',
+                        outline:isAdvCol?'1.5px solid rgba(56,189,248,0.3)':'none',
+                        outlineOffset:-2, transition:'background 0.15s',
                       }}
                     >
                       <Piece player={cell} isNew={isNew} isWinner={isWinCell} />
@@ -1194,47 +1342,35 @@
               </div>
             ))}
 
-            <div style={{
-              marginTop:10,
-              textAlign:'center',
-              color:'rgba(255,255,255,0.08)',
-              fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase',
-              fontWeight:700, fontFamily:'var(--font-display)',
-            }}>
+            <div style={{ marginTop:10, textAlign:'center', color:'rgba(255,255,255,0.08)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', fontWeight:700, fontFamily:'var(--font-display)' }}>
               Connect Four
             </div>
           </div>
 
-          {/* ── Action row ── */}
+          {/* Action row */}
           <div style={{ marginTop:16, display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', justifyContent:'center' }}>
             {!gameOver && !isBotTurn && (
               <AdvisorButton onAdvisor={handleAdvisor} used={advisorUsed} disabled={gameOver||isBotTurn} />
             )}
             {gameOver && (
               <>
-                <button
-                  onClick={handleRematch}
-                  style={{
-                    padding:'10px 24px', borderRadius:'var(--radius-md)',
-                    border:'none',
-                    background:`linear-gradient(135deg, ${T.accent} 0%, #0ea5e9 100%)`,
-                    color:'#020c16', fontWeight:800, fontSize:14,
-                    boxShadow:`0 4px 18px rgba(56,189,248,0.4)`,
-                    transition:'all 0.15s',
-                  }}
+                <button onClick={handleRematch} style={{
+                  padding:'10px 24px', borderRadius:'var(--radius-md)',
+                  border:'none',
+                  background:`linear-gradient(135deg, ${T.accent} 0%, #0ea5e9 100%)`,
+                  color:'#020c16', fontWeight:800, fontSize:14,
+                  boxShadow:`0 4px 18px rgba(56,189,248,0.4)`, transition:'all 0.15s',
+                }}
                   onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.04)'; }}
                   onMouseLeave={e=>{ e.currentTarget.style.transform='scale(1)'; }}
                 >
                   Rematch
                 </button>
-                <button
-                  onClick={onMenu}
-                  style={{
-                    padding:'10px 24px', borderRadius:'var(--radius-md)',
-                    border:`1px solid ${T.borderHi}`,
-                    background:T.surface, color:T.text, fontWeight:600, fontSize:14,
-                    transition:'all 0.15s',
-                  }}
+                <button onClick={onMenu} style={{
+                  padding:'10px 24px', borderRadius:'var(--radius-md)',
+                  border:`1px solid ${T.borderHi}`,
+                  background:T.surface, color:T.text, fontWeight:600, fontSize:14, transition:'all 0.15s',
+                }}
                   onMouseEnter={e=>{ e.currentTarget.style.background=T.surfaceH; }}
                   onMouseLeave={e=>{ e.currentTarget.style.background=T.surface; }}
                 >
@@ -1244,21 +1380,17 @@
             )}
           </div>
 
-          {/* Move counter */}
           <div style={{ marginTop:12, color:T.dim, fontSize:11, fontFamily:'var(--font-mono)', letterSpacing:'0.05em' }}>
             MOVE #{moveCount} · {Math.round((Date.now()-gameStart)/1000)}s
           </div>
 
-          {/* Modals */}
           {showLB && <LeaderboardModal onClose={() => setShowLB(false)} />}
           {showPostGame && (
             <PostGameModal
               stats={{
-                winner: winInfo?.winner,
-                isDraw: drawGame,
-                moves: moveCount,
-                elapsed: Math.round((Date.now()-gameStart)/1000),
-                p1Name, p2Name: p2Label, p1Times, p2Times, mode,
+                winner:winInfo?.winner, isDraw:drawGame,
+                moves:moveCount, elapsed:Math.round((Date.now()-gameStart)/1000),
+                p1Name, p2Name:p2Label, p1Times, p2Times, mode, difficulty,
               }}
               onRematch={() => { setShowPostGame(false); handleRematch(); }}
               onMenu={() => { setShowPostGame(false); onMenu(); }}
@@ -1282,7 +1414,7 @@
 
       function handleStart(cfg, resume=false) {
         if (resume && savedGame) {
-          setConfig({ mode:savedGame.mode, p1Name:savedGame.p1Name, p2Name:savedGame.p2Name, timerSec:savedGame.timerSec, resumeState:savedGame });
+          setConfig({ mode:savedGame.mode, p1Name:savedGame.p1Name, p2Name:savedGame.p2Name, timerSec:savedGame.timerSec, difficulty:savedGame.difficulty||'hard', resumeState:savedGame });
         } else {
           setConfig(cfg); setSaved(null);
         }
