@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Connect Four</title>
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- React + Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -32,15 +30,15 @@
       --col-border-hi:    rgba(255,255,255,0.15);
 
       --col-p1:           #ff3d6b;   /* player 1  — vivid rose  */
-      --col-p1-glow:      #ff3d6b44;
+      --col-p1-glow:      rgba(255, 61, 107, 0.3);
       --col-p1-dim:       #7a1a30;
       --col-p2:           #fbbf24;   /* player 2  — golden      */
-      --col-p2-glow:      #fbbf2444;
+      --col-p2-glow:      rgba(251, 191, 36, 0.3);
       --col-p2-dim:       #7a5a10;
       --col-bot:          #a78bfa;   /* bot       — violet      */
-      --col-bot-glow:     #a78bfa44;
+      --col-bot-glow:     rgba(167, 139, 250, 0.3);
       --col-accent:       #38bdf8;   /* advisor   — sky cyan    */
-      --col-accent-glow:  #38bdf822;
+      --col-accent-glow:  rgba(56, 189, 248, 0.15);
 
       --col-board:        #0d1b36;
       --col-board-rim:    #162444;
@@ -245,7 +243,7 @@
     const DEFAULT_TIMER = 15;
 
     /* ═══════════════════════════════════════════════════════════════
-       GAME LOGIC  (unchanged from original)
+       GAME LOGIC
     ════════════════════════════════════════════════════════════════ */
     const makeBoard = () => Array(ROWS).fill(null).map(() => Array(COLS).fill(EMPTY));
 
@@ -327,7 +325,7 @@
     const playerGlow  = p => p===P1 ? T.p1Glow : p===BOT ? T.botGlow : T.p2Glow;
 
     /* ═══════════════════════════════════════════════════════════════
-       PIECE COMPONENT  — tactile, glowing, animated
+       PIECE COMPONENT  — FIXED TRANSPARENCY BUG
     ════════════════════════════════════════════════════════════════ */
     function Piece({ player, isNew, isWinner }) {
       if (!player) {
@@ -341,6 +339,8 @@
         );
       }
       const col = playerColor(player);
+      const glow = playerGlow(player);
+      
       return (
         <div style={{ position:'relative', width:'100%', aspectRatio:'1' }}>
           {/* Outer glow ring when winning */}
@@ -355,22 +355,22 @@
           {/* The piece */}
           <div style={{
             width:'100%', height:'100%', borderRadius:'50%',
-            background: `radial-gradient(circle at 35% 32%, ${col}ff 0%, ${col}cc 45%, ${col}88 100%)`,
+            background: `radial-gradient(circle at 35% 32%, #ffffff 0%, ${col} 40%, rgba(0,0,0,0.4) 100%)`,
+            backgroundColor: col,
             boxShadow: isWinner
-              ? `inset 0 -3px 8px rgba(0,0,0,0.4), 0 0 20px ${col}, 0 0 45px ${col}88`
-              : `inset 0 -4px 10px rgba(0,0,0,0.5), inset 0 3px 6px rgba(255,255,255,0.18), 0 4px 14px ${col}55`,
+              ? `inset 0 -3px 8px rgba(0,0,0,0.4), 0 0 20px ${col}, 0 0 45px ${glow}`
+              : `inset 0 -4px 10px rgba(0,0,0,0.5), inset 0 3px 6px rgba(255,255,255,0.2), 0 4px 14px ${glow}`,
             animation: isNew ? 'dropIn 0.42s cubic-bezier(0.22,1,0.36,1) forwards'
                       : isWinner ? 'winPulse 0.9s ease-in-out infinite' : 'none',
             transformOrigin: 'top center',
             transition: 'box-shadow 0.3s ease',
-            /* Specular highlight overlay */
             position:'relative', overflow:'hidden',
           }}>
             <div style={{
               position:'absolute', top:'12%', left:'18%',
               width:'35%', height:'22%', borderRadius:'50%',
-              background:'rgba(255,255,255,0.22)',
-              filter:'blur(2px)',
+              background:'rgba(255,255,255,0.25)',
+              filter:'blur(1px)',
               transform:'rotate(-20deg)',
             }} />
           </div>
@@ -620,9 +620,9 @@
           flex:1,
           padding:'10px 14px',
           borderRadius:'var(--radius-md)',
-          background: active ? `${color}12` : T.surface,
+          background: active ? `rgba(255,255,255,0.06)` : T.surface,
           border:`1px solid ${active ? color : T.border}`,
-          boxShadow: active ? `0 0 20px ${color}22, inset 0 0 20px ${color}08` : 'none',
+          boxShadow: active ? `0 0 20px ${glow}` : 'none',
           transition:'all 0.3s ease',
           textAlign: right ? 'right' : 'left',
         }}>
@@ -633,7 +633,7 @@
             <div style={{
               width:12, height:12, borderRadius:'50%', flexShrink:0,
               background:color,
-              boxShadow: active ? `0 0 0 3px ${color}33, 0 0 10px ${color}` : 'none',
+              boxShadow: active ? `0 0 0 3px ${glow}, 0 0 10px ${color}` : 'none',
               transition:'box-shadow 0.3s ease',
             }} />
             <div style={{
@@ -676,13 +676,13 @@
         }}>
           {/* ── Hero logo ── */}
           <div style={{ textAlign:'center', marginBottom:48 }}>
-            {/* Floating orbs */}
             <div style={{ display:'flex', gap:10, justifyContent:'center', marginBottom:18 }}>
               {orbs.map((c,i) => (
                 <div key={i} style={{
                   width:16, height:16, borderRadius:'50%',
-                  background:`radial-gradient(circle at 35% 30%, ${c}ff, ${c}99)`,
-                  boxShadow:`0 0 12px ${c}88, 0 0 24px ${c}44`,
+                  background:`radial-gradient(circle at 35% 30%, #fff, ${c})`,
+                  backgroundColor: c,
+                  boxShadow:`0 0 12px ${c}, 0 0 24px rgba(255,255,255,0.2)`,
                   animation:`float 2s ease-in-out ${i*0.25}s infinite`,
                 }} />
               ))}
@@ -858,7 +858,6 @@
             position:'relative', overflow:'hidden',
           }}
         >
-          {/* Shimmer effect on hover */}
           {!used && hover && (
             <div style={{
               position:'absolute', inset:0,
@@ -907,14 +906,12 @@
 
       const isBotTurn = mode===1 && current===BOT;
 
-      // persist state
       useEffect(() => {
         if (gameOver) { localStorage.removeItem(STORAGE_KEY); return; }
         const s = { board, current, p1Name, p2Name, timerSec, timerLeft, moveCount, p1Times, p2Times, mode, turnStart: Date.now() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
       }, [board, current, timerLeft]);
 
-      // timer
       useEffect(() => {
         if (gameOver) return;
         clearInterval(timerRef.current);
@@ -929,7 +926,6 @@
         return () => clearInterval(timerRef.current);
       }, [current, gameOver]);
 
-      // bot move
       useEffect(() => {
         if (!isBotTurn || gameOver) return;
         botTimeout.current = setTimeout(() => {
@@ -987,10 +983,6 @@
 
       const curColor = playerColor(current);
       const curGlow  = playerGlow(current);
-      const elapsedS = Math.round((Date.now()-gameStart)/1000);
-
-      /* Cell size: clamp so board fits on small screens */
-      const cellPx = 'min(calc((min(100vw,520px) - 56px) / 7), 64px)';
 
       return (
         <div style={{
@@ -1118,7 +1110,7 @@
             onMouseLeave={() => setHoverCol(null)}
             style={{
               width:'100%', maxWidth:560,
-              background:'linear-gradient(160deg, #0e1f3d 0%, #091628 100%)',
+              background: 'linear-gradient(160deg, #0e1f3d 0%, #091628 100%)',
               borderRadius:'var(--radius-xl)',
               padding:'14px 14px 10px',
               border:'2px solid var(--col-board-rim)',
@@ -1139,14 +1131,12 @@
                   <div key={c} style={{ display:'flex', justifyContent:'center', alignItems:'center', position:'relative' }}>
                     {(isAdvisor || isHov) && (
                       <>
-                        {/* Main drop arrow */}
                         <div style={{
                           width:10, height:10, borderRadius:'50%',
                           background: isAdvisor ? T.accent : curColor,
                           boxShadow: isAdvisor ? `0 0 10px ${T.accent}` : `0 0 8px ${curColor}`,
                           animation: isAdvisor ? 'colHoverBounce 0.6s ease-in-out infinite' : 'colHoverBounce 0.8s ease-in-out infinite',
                         }} />
-                        {/* Ping ripple for advisor */}
                         {isAdvisor && (
                           <div style={{
                             position:'absolute', width:20, height:20, borderRadius:'50%',
@@ -1204,7 +1194,6 @@
               </div>
             ))}
 
-            {/* Board branding strip */}
             <div style={{
               marginTop:10,
               textAlign:'center',
