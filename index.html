@@ -10,6 +10,11 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="firebase-multiplayer.js"></script>
   <style>
     :root{
       --font-display:'Syne',sans-serif;
@@ -174,8 +179,10 @@
      CONSTANTS
   ═════════════════════════════════════════════*/
   const ROWS=6,COLS=7,EMPTY=null,P1='P1',P2='P2',BOT='BOT';
+  const MODE_BOT=1,MODE_LOCAL=2,MODE_ONLINE=3;
   const STORAGE_KEY='c4_game_state',LB_KEY='c4_leaderboard_v2',SHOP_KEY='c4_shop_v1';
   const DEFAULT_TIMER=15;
+  const FB=C4Firebase;
 
   /* ════════════════════════════════════════════
      DIFFICULTIES
@@ -723,12 +730,17 @@
   /* ════════════════════════════════════════════
      POST-GAME MODAL
   ═════════════════════════════════════════════*/
-  function PostGameModal({stats,onRematch,onMenu}){
-    const{winner,moves,elapsed,p1Name,p2Name,p1Times,p2Times,isDraw:draw,mode,difficulty}=stats;
+  function PostGameModal({stats,onRematch,onMenu,onOnlineWin}){
+    const{winner,moves,elapsed,p1Name,p2Name,p1Times,p2Times,isDraw:draw,mode,difficulty,isOnline,myRole}=stats;
     const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):'—';
     const wName=winner===P1?p1Name:winner===BOT?'Bot':p2Name;
     const wColor=winner?(winner===P1?'#ff3d6b':winner===BOT?'#a78bfa':'#fbbf24'):T.muted;
+    const iWon=isOnline&&winner&&winner===myRole;
     useEffect(()=>{
+      if(isOnline){
+        if(iWon&&onOnlineWin)onOnlineWin();
+        return;
+      }
       if(draw){recordGameResult(null,null,true,p1Name,p2Name);}
       else if(winner){const winN=winner===P1?p1Name:winner===BOT?'Bot':p2Name;recordGameResult(winN,winner===P1?p2Name:p1Name,false,p1Name,p2Name);}
     },[]);
@@ -741,14 +753,15 @@
       if(a1!=='—'&&a2!=='—'&&Math.abs(a1-a2)>5){const fast=a1<a2?p1Name:p2Name;return`${fast} played with blazing speed. ${wName} took the win.`;}
       return`A well-contested match! ${wName} read the board brilliantly in ${moves} moves.`;
     }
-    const statItems=[{label:'Total Moves',val:moves,icon:'🎯'},{label:'Time Elapsed',val:`${elapsed}s`,icon:'⏱'},{label:`${p1Name} avg`,val:`${avg(p1Times)}s`,icon:'🔴'},{label:`${mode===2?p2Name:'Bot'} avg`,val:`${avg(p2Times)}s`,icon:mode===2?'🟡':'🤖'}];
+    const statItems=[{label:'Total Moves',val:moves,icon:'🎯'},{label:'Time Elapsed',val:`${elapsed}s`,icon:'⏱'},{label:`${p1Name} avg`,val:`${avg(p1Times)}s`,icon:'🔴'},{label:`${mode===MODE_LOCAL?p2Name:isOnline?p2Name:'Bot'} avg`,val:`${avg(p2Times)}s`,icon:mode===MODE_LOCAL||isOnline?'🟡':'🤖'}];
     return(
       <ModalOverlay>
         <div style={{textAlign:'center',marginBottom:24}}>
           <div style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:72,height:72,borderRadius:'50%',marginBottom:16,background:draw?T.surface:`${wColor}18`,border:`2px solid ${draw?T.border:wColor}`,fontSize:32,boxShadow:draw?'none':`0 0 24px ${wColor}44`}}>{draw?'🤝':'🏆'}</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:800,letterSpacing:'-0.03em',color:draw?T.muted:wColor,textShadow:draw?'none':`0 0 20px ${wColor}88`,marginBottom:8}}>{draw?"It's a Draw!":`${wName} Wins!`}</h2>
           <p style={{color:T.muted,fontSize:13,lineHeight:1.6,fontStyle:'italic',maxWidth:320,margin:'0 auto'}}>{getCommentary()}</p>
-          {mode===1&&diffInfo&&<div style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:10,padding:'4px 12px',borderRadius:99,background:`${diffInfo.color}18`,border:`1px solid ${diffInfo.color}44`,fontSize:12,color:diffInfo.color,fontWeight:700}}>{diffInfo.emoji} {diffInfo.label} Bot</div>}
+          {mode===MODE_BOT&&diffInfo&&<div style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:10,padding:'4px 12px',borderRadius:99,background:`${diffInfo.color}18`,border:`1px solid ${diffInfo.color}44`,fontSize:12,color:diffInfo.color,fontWeight:700}}>{diffInfo.emoji} {diffInfo.label} Bot</div>}
+          {isOnline&&<div style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:10,padding:'4px 12px',borderRadius:99,background:'rgba(56,189,248,0.12)',border:'1px solid rgba(56,189,248,0.35)',fontSize:12,color:T.accent,fontWeight:700}}>🌐 Online Match</div>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:20}}>
           {statItems.map(({label,val,icon},i)=>(
@@ -797,16 +810,133 @@
   }
 
   /* ════════════════════════════════════════════
+     GLOBAL LEADERBOARD (Firebase)
+  ═════════════════════════════════════════════*/
+  function GlobalLeaderboard(){
+    const[rows,setRows]=useState([]);
+    const[loading,setLoading]=useState(true);
+    const[err,setErr]=useState(null);
+    useEffect(()=>{
+      let cancelled=false;
+      (async()=>{
+        if(!FB.isConfigured()){setErr('Add Firebase config to enable global rankings.');setLoading(false);return;}
+        const r=await FB.init();
+        if(cancelled)return;
+        if(!r.ok){setErr(r.error||'Could not connect');setLoading(false);return;}
+        const top=await FB.fetchGlobalLeaderboard(10);
+        if(!cancelled){setRows(top);setLoading(false);}
+      })();
+      return()=>{cancelled=true;};
+    },[]);
+    const medals=['🥇','🥈','🥉'];
+    return(
+      <div style={{width:'100%',maxWidth:420,marginTop:8,background:'rgba(12,17,32,0.7)',border:'1px solid var(--col-border)',borderRadius:'var(--radius-xl)',padding:'20px 22px',backdropFilter:'blur(16px)',boxShadow:'0 16px 48px rgba(0,0,0,0.45)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+          <span style={{fontSize:20}}>🌍</span>
+          <div>
+            <div style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:16,letterSpacing:'-0.02em',color:T.text}}>Global Leaderboard</div>
+            <div style={{fontSize:10,color:T.dim,marginTop:2}}>Top 10 · online wins</div>
+          </div>
+        </div>
+        {loading?(
+          <div style={{textAlign:'center',padding:'20px 0',color:T.muted,fontSize:13}}>Loading rankings…</div>
+        ):err?(
+          <div style={{textAlign:'center',padding:'16px 0',color:T.danger,fontSize:12,lineHeight:1.5}}>{err}</div>
+        ):rows.length===0?(
+          <div style={{textAlign:'center',padding:'20px 0',color:T.dim,fontSize:12}}>No online wins yet. Be the first!</div>
+        ):(
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {rows.map((row,i)=>(
+              <div key={row.key} style={{display:'grid',gridTemplateColumns:'28px 1fr 48px',gap:8,alignItems:'center',padding:'9px 10px',borderRadius:'var(--radius-sm)',background:i===0?'rgba(251,191,36,0.06)':T.surface,border:`1px solid ${i===0?'rgba(251,191,36,0.2)':T.border}`,animation:`lbRowIn 0.3s ease ${i*0.04}s both`}}>
+                <span style={{textAlign:'center',fontSize:14}}>{medals[i]||<span style={{fontFamily:'var(--font-mono)',fontSize:10,color:T.dim}}>#{i+1}</span>}</span>
+                <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{row.name}</div>
+                <div style={{textAlign:'right',fontFamily:'var(--font-mono)',fontWeight:700,fontSize:13,color:T.success}}>{row.wins}W</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════
+     USERNAME PROMPT (online win)
+  ═════════════════════════════════════════════*/
+  function UsernamePromptModal({defaultName,onSave,onSkip}){
+    const[name,setName]=useState(defaultName||'');
+    return(
+      <ModalOverlay onClose={onSkip}>
+        <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:T.text,marginBottom:8}}>🏆 You won online!</h2>
+        <p style={{color:T.muted,fontSize:13,marginBottom:16,lineHeight:1.5}}>Save your win to the global leaderboard.</p>
+        <label>Display name</label>
+        <input type="text" value={name} maxLength={24} onChange={e=>setName(e.target.value)} placeholder="Your username" style={{marginBottom:16}}/>
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={()=>onSave(name.trim())} style={{flex:1,padding:'12px',borderRadius:'var(--radius-md)',border:'none',background:'linear-gradient(135deg,var(--col-accent),#0ea5e9)',color:'#020c16',fontWeight:800,fontSize:14}}>Save win</button>
+          <button onClick={onSkip} style={{padding:'12px 18px',borderRadius:'var(--radius-md)',border:`1px solid ${T.borderHi}`,background:T.surface,color:T.muted,fontWeight:600,fontSize:14}}>Skip</button>
+        </div>
+      </ModalOverlay>
+    );
+  }
+
+  /* ════════════════════════════════════════════
+     ONLINE WAITING / MATCHMAKING
+  ═════════════════════════════════════════════*/
+  function OnlineWaitingScreen({title,subtitle,code,onCancel,status}){
+    return(
+      <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 16px'}}>
+        <div style={{width:'100%',maxWidth:420,background:'rgba(12,17,32,0.7)',border:'1px solid var(--col-border)',borderRadius:'var(--radius-xl)',padding:'32px 28px',backdropFilter:'blur(16px)',boxShadow:'0 24px 64px rgba(0,0,0,0.5)',textAlign:'center',animation:'fadeSlideUp 0.35s ease'}}>
+          <div style={{fontSize:40,marginBottom:16,animation:'pulse 1.2s ease-in-out infinite'}}>🌐</div>
+          <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:24,color:T.text,marginBottom:8}}>{title}</h2>
+          <p style={{color:T.muted,fontSize:14,marginBottom:20,lineHeight:1.5}}>{subtitle}</p>
+          {code&&(
+            <div style={{marginBottom:24,padding:'20px',borderRadius:'var(--radius-lg)',background:'rgba(56,189,248,0.08)',border:'1px solid rgba(56,189,248,0.3)'}}>
+              <div style={{fontSize:11,color:T.dim,letterSpacing:'0.12em',textTransform:'uppercase',fontWeight:700,marginBottom:8}}>Room code</div>
+              <div style={{fontFamily:'var(--font-mono)',fontSize:42,fontWeight:700,letterSpacing:'0.2em',color:T.accent,textShadow:`0 0 24px ${T.accent}`}}>{code}</div>
+              <p style={{color:T.dim,fontSize:11,marginTop:10}}>Share this code with your friend</p>
+            </div>
+          )}
+          {status&&<p style={{color:T.accent,fontSize:13,fontWeight:600,marginBottom:20}}>{status}</p>}
+          <button onClick={onCancel} style={{width:'100%',padding:'12px',borderRadius:'var(--radius-md)',border:`1px solid ${T.borderHi}`,background:T.surface,color:T.muted,fontWeight:600,fontSize:14}}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════
      SETUP SCREEN
   ═════════════════════════════════════════════*/
-  function SetupScreen({onStart,savedGame,shopState,onOpenShop}){
-    const[mode,setMode]=useState(1);
+  function SetupScreen({onStart,savedGame,shopState,onOpenShop,onOnlineStart}){
+    const[mode,setMode]=useState(MODE_BOT);
     const[p1Name,setP1Name]=useState('Player 1');
     const[p2Name,setP2Name]=useState('Player 2');
     const[timerSec,setTimerSec]=useState(DEFAULT_TIMER);
     const[difficulty,setDiff]=useState('hard');
+    const[joinCode,setJoinCode]=useState('');
+    const[onlineBusy,setOnlineBusy]=useState(false);
+    const[onlineErr,setOnlineErr]=useState(null);
+    const globalName=FB.getSavedUsername()||p1Name;
     const orbs=[T.p1,T.p2,T.bot,T.accent];
     const selDiff=DIFFICULTIES.find(d=>d.id===difficulty);
+    async function runOnline(action){
+      setOnlineErr(null);setOnlineBusy(true);
+      try{
+        const name=(p1Name||'Player 1').trim();
+        if(name)FB.saveUsername(name);
+        let result;
+        if(action==='create')result=await FB.createPrivateRoom(name);
+        else if(action==='join')result=await FB.joinPrivateRoom(joinCode,name);
+        else result=await FB.joinRandomQueue(name);
+        if(!result.ok){setOnlineErr(result.error||'Failed');return;}
+        onOnlineStart({
+          ...result,
+          playerName:name,
+          timerSec,
+          hostName:result.hostName||name,
+          guestName:result.guestName,
+          waiting:action==='create'||!!result.waiting,
+        });
+      }finally{setOnlineBusy(false);}
+    }
     return(
       <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 16px'}}>
         <div style={{textAlign:'center',marginBottom:40}}>
@@ -839,16 +969,43 @@
           )}
           <div>
             <label>Game Mode</label>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-              {[{id:1,emoji:'🤖',label:'vs Bot',desc:'You vs AI'},{id:2,emoji:'👥',label:'vs Player',desc:'Local 2P'}].map(m=>(
-                <button key={m.id} onClick={()=>setMode(m.id)} style={{padding:'14px 12px',borderRadius:'var(--radius-md)',border:`1px solid ${mode===m.id?T.accent:T.border}`,background:mode===m.id?'rgba(56,189,248,0.1)':T.surface,color:mode===m.id?T.accent:T.muted,transition:'all 0.18s',boxShadow:mode===m.id?'0 0 16px rgba(56,189,248,0.12)':'none',textAlign:'center'}}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+              {[{id:MODE_BOT,emoji:'🤖',label:'vs Bot',desc:'You vs AI'},{id:MODE_LOCAL,emoji:'👥',label:'Local 2P',desc:'Same device'},{id:MODE_ONLINE,emoji:'🌐',label:'Online',desc:'Global MP'}].map(m=>(
+                <button key={m.id} onClick={()=>setMode(m.id)} style={{padding:'12px 8px',borderRadius:'var(--radius-md)',border:`1px solid ${mode===m.id?T.accent:T.border}`,background:mode===m.id?'rgba(56,189,248,0.1)':T.surface,color:mode===m.id?T.accent:T.muted,transition:'all 0.18s',boxShadow:mode===m.id?'0 0 16px rgba(56,189,248,0.12)':'none',textAlign:'center'}}
                   onMouseEnter={e=>{if(mode!==m.id)e.currentTarget.style.borderColor=T.borderHi;}}
                   onMouseLeave={e=>{if(mode!==m.id)e.currentTarget.style.borderColor=T.border;}}
-                ><div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div><div style={{fontWeight:700,fontSize:14}}>{m.label}</div><div style={{fontSize:11,opacity:.7}}>{m.desc}</div></button>
+                ><div style={{fontSize:20,marginBottom:4}}>{m.emoji}</div><div style={{fontWeight:700,fontSize:13}}>{m.label}</div><div style={{fontSize:10,opacity:.7}}>{m.desc}</div></button>
               ))}
             </div>
           </div>
-          {mode===1&&(
+          {mode===MODE_ONLINE&&(
+            <div style={{animation:'difficultyAppear 0.25s ease forwards',display:'flex',flexDirection:'column',gap:12}}>
+              <label>Online Multiplayer</label>
+              {!FB.isConfigured()&&(
+                <p style={{color:T.danger,fontSize:12,lineHeight:1.5,padding:'10px 12px',borderRadius:'var(--radius-sm)',background:'rgba(248,113,113,0.08)',border:'1px solid rgba(248,113,113,0.25)'}}>Configure <code style={{fontFamily:'var(--font-mono)',fontSize:11}}>firebase-config.js</code> to enable online play.</p>
+              )}
+              <div>
+                <label>🔴 Your name (Red · Host)</label>
+                <input type="text" value={p1Name} onChange={e=>setP1Name(e.target.value||'Player 1')} placeholder={globalName||'Player 1'}/>
+              </div>
+              <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('create')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(255,61,107,0.35)',background:'rgba(255,61,107,0.1)',color:T.p1,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
+                🔐 Create Private Room
+              </button>
+              <div>
+                <label>Join with 4-digit code</label>
+                <div style={{display:'flex',gap:8}}>
+                  <input type="text" inputMode="numeric" maxLength={4} value={joinCode} onChange={e=>setJoinCode(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="1234" style={{fontFamily:'var(--font-mono)',letterSpacing:'0.15em',textAlign:'center'}}/>
+                  <button disabled={onlineBusy||joinCode.length!==4||!FB.isConfigured()} onClick={()=>runOnline('join')} style={{padding:'11px 16px',borderRadius:'var(--radius-sm)',border:'none',background:'linear-gradient(135deg,var(--col-accent),#0ea5e9)',color:'#020c16',fontWeight:800,fontSize:14,whiteSpace:'nowrap',opacity:onlineBusy?0.6:1}}>Join</button>
+                </div>
+              </div>
+              <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('random')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(251,191,36,0.35)',background:'rgba(251,191,36,0.08)',color:T.p2,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
+                🎲 Play with Random
+              </button>
+              {onlineErr&&<p style={{color:T.danger,fontSize:12}}>{onlineErr}</p>}
+              <p style={{color:T.dim,fontSize:11,lineHeight:1.5}}>Host plays <span style={{color:T.p1,fontWeight:600}}>Red</span>, guest plays <span style={{color:T.p2,fontWeight:600}}>Yellow</span>. Moves sync in real time.</p>
+            </div>
+          )}
+          {mode===MODE_BOT&&(
             <div style={{animation:'difficultyAppear 0.25s ease forwards'}}>
               <label>Bot Difficulty</label>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
@@ -868,24 +1025,31 @@
               )}
             </div>
           )}
-          <div style={{display:'grid',gridTemplateColumns:mode===2?'1fr 1fr':'1fr',gap:12}}>
+          {mode!==MODE_ONLINE&&(
+          <div style={{display:'grid',gridTemplateColumns:mode===MODE_LOCAL?'1fr 1fr':'1fr',gap:12}}>
             <div>
-              <label>🔴 {mode===2?'Player 1':'Your Name'}</label>
+              <label>🔴 {mode===MODE_LOCAL?'Player 1':'Your Name'}</label>
               <input type="text" value={p1Name} onChange={e=>setP1Name(e.target.value||'Player 1')}/>
             </div>
-            {mode===2&&<div><label>🟡 Player 2</label><input type="text" value={p2Name} onChange={e=>setP2Name(e.target.value||'Player 2')}/></div>}
+            {mode===MODE_LOCAL&&<div><label>🟡 Player 2</label><input type="text" value={p2Name} onChange={e=>setP2Name(e.target.value||'Player 2')}/></div>}
           </div>
+          )}
+          {mode!==MODE_ONLINE&&(
           <div>
             <label style={{display:'flex',justifyContent:'space-between'}}><span>Turn Timer</span><span style={{fontFamily:'var(--font-mono)',color:T.accent,letterSpacing:'normal',textTransform:'none'}}>{timerSec}s</span></label>
             <input type="range" min={5} max={60} step={5} value={timerSec} onChange={e=>setTimerSec(Number(e.target.value))}/>
             <div style={{display:'flex',justifyContent:'space-between',marginTop:4,color:T.dim,fontSize:11}}><span>5s (fast)</span><span>30s</span><span>60s (chill)</span></div>
           </div>
+          )}
+          {mode!==MODE_ONLINE&&(
           <button onClick={()=>onStart({mode,p1Name:p1Name||'Player 1',p2Name:p2Name||'Player 2',timerSec,difficulty})}
             style={{width:'100%',padding:'15px',borderRadius:'var(--radius-md)',border:'none',background:'linear-gradient(135deg,var(--col-accent) 0%,#0ea5e9 100%)',color:'#020c16',fontWeight:800,fontSize:16,letterSpacing:'0.02em',boxShadow:'0 6px 28px rgba(56,189,248,0.45)',transition:'all 0.18s'}}
             onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 36px rgba(56,189,248,0.6)';}}
             onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 6px 28px rgba(56,189,248,0.45)';}}
           >Launch Game →</button>
+          )}
         </div>
+        <GlobalLeaderboard/>
       </div>
     );
   }
@@ -893,10 +1057,15 @@
   /* ════════════════════════════════════════════
      GAME SCREEN
   ═════════════════════════════════════════════*/
-  function GameScreen({config,onMenu,shopState,onOpenShop}){
-    const{mode,p1Name,p2Name,timerSec,difficulty='hard'}=config;
-    const p2Label=mode===2?p2Name:'Bot';
-    const p2Token=mode===2?P2:BOT;
+  function GameScreen({config,onMenu,shopState,onOpenShop,onOnlineWin}){
+    const{mode,p1Name,p2Name,timerSec,difficulty='hard',roomPath,myRole,isHost,playerName}=config;
+    const isOnline=mode===MODE_ONLINE;
+    const hostName=isOnline?(config.hostName||playerName||'Host'):p1Name;
+    const guestName=isOnline?(config.guestName||'Waiting…'):mode===MODE_LOCAL?p2Name:'Bot';
+    const p2Label=isOnline?guestName:mode===MODE_LOCAL?p2Name:'Bot';
+    const p2Token=isOnline?P2:mode===MODE_LOCAL?P2:BOT;
+    const myPlayer=isOnline?myRole:null;
+    const displayP1Name=hostName;
 
     const[board,setBoard]=useState(makeBoard());
     const[current,setCurrent]=useState(P1);
@@ -917,9 +1086,13 @@
     const[gameOver,setGameOver]=useState(false);
     // lbRefresh key forces InlineLeaderboard to re-read after game ends
     const[lbKey,setLbKey]=useState(0);
+    const[disconnectMsg,setDisconnectMsg]=useState(null);
+    const[syncing,setSyncing]=useState(isOnline);
+    const lastMoveRef=useRef(null);
     const timerRef=useRef(null),botTimeout=useRef(null);
     const isDesktop=useDesktop();
-    const isBotTurn=mode===1&&current===BOT;
+    const isBotTurn=!isOnline&&mode===MODE_BOT&&current===BOT;
+    const isMyTurn=isOnline?!gameOver&&current===myPlayer:!gameOver&&!isBotTurn;
     const diffInfo=DIFFICULTIES.find(d=>d.id===difficulty);
     const activeTheme=BOARD_THEMES.find(t=>t.id===(shopState&&shopState.boardTheme))||BOARD_THEMES[0];
     const curColorRaw=playerColorRaw(current,shopState);
@@ -927,13 +1100,42 @@
     const p2ColorVal=playerColorRaw(p2Token,shopState);
 
     useEffect(()=>{
+      if(isOnline)return;
       if(gameOver){localStorage.removeItem(STORAGE_KEY);setLbKey(k=>k+1);return;}
       const s={board,current,p1Name,p2Name,timerSec,timerLeft,moveCount,p1Times,p2Times,mode,difficulty,turnStart:Date.now()};
       localStorage.setItem(STORAGE_KEY,JSON.stringify(s));
-    },[board,current,timerLeft]);
+    },[board,current,timerLeft,isOnline]);
 
     useEffect(()=>{
-      if(gameOver)return;
+      if(!isOnline||!roomPath)return;
+      FB.setPresence(roomPath,myRole,true);
+      const unsub=FB.subscribeRoom(roomPath,(room)=>{
+        if(!room)return;
+        setSyncing(false);
+        if(room.board)setBoard(room.board);
+        if(room.current)setCurrent(room.current);
+        setMoveCount(room.moveCount||0);
+        if(room.winInfo){setWinInfo(room.winInfo);setGameOver(true);}
+        else if(room.isDraw){setDrawGame(true);setGameOver(true);}
+        else{setWinInfo(null);setDrawGame(false);if(room.status==='playing')setGameOver(false);}
+        if(room.lastMove){
+          const lm=room.lastMove;
+          const key=lm.col+'-'+lm.row+'-'+lm.at;
+          if(lastMoveRef.current!==key){lastMoveRef.current=key;setNewCell([lm.row,lm.col]);setTimeout(()=>setNewCell(null),450);}
+        }
+        if(room.disconnected){
+          const who=room.disconnected==='host'?room.hostName:room.guestName;
+          setDisconnectMsg(who?`${who} disconnected`:'Opponent disconnected');
+        }else setDisconnectMsg(null);
+        if(room.status==='playing'&&room.guestId&&!showPostGame)setShowPostGame(false);
+        if(room.status==='finished'&&!showPostGame)setTimeout(()=>setShowPostGame(true),600);
+        if(room.status==='playing'&&room.moveCount===0&&!room.winInfo&&!room.isDraw){setShowPostGame(false);setWinInfo(null);setDrawGame(false);setGameOver(false);}
+      });
+      return()=>{unsub();FB.leaveRoom(roomPath,FB.getUid());};
+    },[roomPath,isOnline]);
+
+    useEffect(()=>{
+      if(isOnline||gameOver)return;
       clearInterval(timerRef.current);
       setTimerLeft(timerSec);setTurnStart(Date.now());
       timerRef.current=setInterval(()=>{
@@ -945,7 +1147,7 @@
     useEffect(()=>{
       if(!isBotTurn||gameOver)return;
       const delay=difficulty==='master'?200:800;
-      botTimeout.current=setTimeout(()=>{doMove(getBotMove(board,BOT,difficulty),BOT);},delay);
+      botTimeout.current=setTimeout(()=>{doMoveLocal(getBotMove(board,BOT,difficulty),BOT);},delay);
       return()=>clearTimeout(botTimeout.current);
     },[current,gameOver]);
 
@@ -954,7 +1156,7 @@
       if(current===P1)setP1Times(p=>[...p,el]);else setP2Times(p=>[...p,el]);
       setAdvisorCol(null);setAdvisorUsed(false);setCurrent(current===P1?p2Token:P1);
     }
-    function doMove(col,player){
+    function doMoveLocal(col,player){
       if(!isValidCol(board,col))return;
       clearInterval(timerRef.current);clearTimeout(botTimeout.current);
       const row=getDropRow(board,col),next=dropPiece(board,col,player);if(!next)return;
@@ -968,9 +1170,25 @@
       if(isDraw(next)){setDrawGame(true);setGameOver(true);setTimeout(()=>setShowPostGame(true),500);return;}
       setCurrent(player===P1?p2Token:P1);
     }
-    function handleColClick(col){if(gameOver||isBotTurn||!isValidCol(board,col))return;doMove(col,current);}
-    function handleAdvisor(){if(gameOver||isBotTurn||advisorUsed)return;setAdvisorCol(getAdvisorCol(board,current));setAdvisorUsed(true);}
-    function handleRematch(){
+    async function handleColClick(col){
+      if(gameOver||!isValidCol(board,col))return;
+      if(isOnline){
+        if(current!==myPlayer||syncing)return;
+        setSyncing(true);
+        await FB.dropPiece(roomPath,col,myPlayer,{isValidCol,dropPiece,checkWinner,isDraw,getDropRow});
+        setSyncing(false);
+        return;
+      }
+      if(isBotTurn)return;
+      doMoveLocal(col,current);
+    }
+    function handleAdvisor(){if(gameOver||isBotTurn||isOnline||advisorUsed)return;setAdvisorCol(getAdvisorCol(board,current));setAdvisorUsed(true);}
+    async function handleRematch(){
+      if(isOnline){
+        setShowPostGame(false);
+        await FB.requestRematch(roomPath,FB.getUid());
+        return;
+      }
       setBoard(makeBoard());setCurrent(P1);setWinInfo(null);setDrawGame(false);
       setNewCell(null);setAdvisorCol(null);setAdvisorUsed(false);setMoveCount(0);
       setP1Times([]);setP2Times([]);setShowPostGame(false);setGameOver(false);setTimerLeft(timerSec);
@@ -987,8 +1205,8 @@
             <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:'var(--radius-sm)',background:current===P1&&!gameOver?`rgba(${p1ColorVal.replace('#','').match(/../g).map(h=>parseInt(h,16)).join(',')},0.08)`:T.surface,border:`1px solid ${current===P1&&!gameOver?p1ColorVal:T.border}`,transition:'all 0.3s',boxShadow:current===P1&&!gameOver?`0 0 16px ${playerGlowHex(p1ColorVal)}`:'none'}}>
               <div style={{width:14,height:14,borderRadius:'50%',flexShrink:0,background:p1ColorVal,boxShadow:current===P1&&!gameOver?`0 0 8px ${p1ColorVal}`:'none'}}/>
               <div style={{flex:1,overflow:'hidden'}}>
-                <div style={{fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p1Name}</div>
-                {current===P1&&!gameOver&&<div style={{fontSize:10,color:p1ColorVal,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:1}}>Your turn</div>}
+                <div style={{fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayP1Name}{isOnline&&isHost&&<span style={{marginLeft:6,fontSize:9,color:T.dim}}>HOST</span>}</div>
+                {current===P1&&!gameOver&&<div style={{fontSize:10,color:p1ColorVal,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:1}}>{myPlayer===P1?'Your turn':'Their turn'}</div>}
               </div>
               {current===P1&&!gameOver&&<div style={{width:8,height:8,borderRadius:'50%',background:p1ColorVal,animation:'pulse 0.8s ease-in-out infinite',boxShadow:`0 0 6px ${p1ColorVal}`}}/>}
             </div>
@@ -998,7 +1216,7 @@
               <div style={{width:14,height:14,borderRadius:'50%',flexShrink:0,background:p2ColorVal,boxShadow:current!==P1&&!gameOver?`0 0 8px ${p2ColorVal}`:'none'}}/>
               <div style={{flex:1,overflow:'hidden'}}>
                 <div style={{fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p2Label}</div>
-                {current!==P1&&!gameOver&&<div style={{fontSize:10,color:p2ColorVal,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:1}}>{isBotTurn?'Thinking…':'Your turn'}</div>}
+                {current!==P1&&!gameOver&&<div style={{fontSize:10,color:p2ColorVal,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:1}}>{isBotTurn?'Thinking…':myPlayer===P2?'Your turn':'Their turn'}</div>}
               </div>
               {current!==P1&&!gameOver&&<div style={{width:8,height:8,borderRadius:'50%',background:p2ColorVal,animation:'pulse 0.8s ease-in-out infinite',boxShadow:`0 0 6px ${p2ColorVal}`}}/>}
             </div>
@@ -1006,13 +1224,13 @@
         </GlassPanel>
 
         {/* Timer */}
-        {!gameOver&&(
+        {!gameOver&&!isOnline&&(
           <GlassPanel style={{padding:'14px 16px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
               <div style={{display:'flex',alignItems:'center',gap:6}}>
                 {isBotTurn&&<div style={{width:7,height:7,borderRadius:'50%',background:T.bot,animation:'pulse 0.8s ease-in-out infinite',boxShadow:`0 0 6px ${T.bot}`}}/>}
                 <span style={{fontSize:11,fontWeight:700,color:isBotTurn?T.bot:curColorRaw,letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                  {isBotTurn?`${diffInfo?.label||''} thinking…`:`${current===P1?p1Name:p2Label}'s turn`}
+                  {isBotTurn?`${diffInfo?.label||''} thinking…`:`${current===P1?displayP1Name:p2Label}'s turn`}
                 </span>
               </div>
               <span style={{fontFamily:'var(--font-mono)',fontWeight:700,fontSize:18,color:timerLeft<=5?T.danger:timerLeft<=10?T.timer:T.text,animation:timerLeft<=5?'timerFlash 0.5s ease-in-out infinite':'none'}}>{timerLeft}s</span>
@@ -1020,18 +1238,25 @@
             <TimerBar seconds={timerLeft} max={timerSec}/>
           </GlassPanel>
         )}
+        {!gameOver&&isOnline&&(
+          <GlassPanel style={{padding:'14px 16px'}}>
+            <div style={{fontSize:11,fontWeight:700,color:isMyTurn?curColorRaw:T.muted,letterSpacing:'0.06em',textTransform:'uppercase'}}>
+              {isMyTurn?'Your turn — drop a piece':'Waiting for opponent…'}
+            </div>
+          </GlassPanel>
+        )}
 
         {/* Game result on desktop */}
         {gameOver&&(
           <GlassPanel style={{padding:'14px 16px',textAlign:'center',border:`1px solid ${drawGame?T.border:winInfo?playerColorRaw(winInfo.winner,shopState):T.border}44`}}>
             <div style={{fontWeight:800,fontSize:16,color:drawGame?T.muted:winInfo?playerColorRaw(winInfo.winner,shopState):T.muted}}>
-              {drawGame?"🤝 It's a Draw!":`🎉 ${winInfo?.winner===P1?p1Name:p2Label} wins!`}
+              {drawGame?"🤝 It's a Draw!":`🎉 ${winInfo?.winner===P1?displayP1Name:p2Label} wins!`}
             </div>
           </GlassPanel>
         )}
 
         {/* Advisor */}
-        {!gameOver&&!isBotTurn&&(
+        {!gameOver&&!isBotTurn&&!isOnline&&(
           <AdvisorButton onAdvisor={handleAdvisor} used={advisorUsed} disabled={gameOver||isBotTurn}/>
         )}
 
@@ -1060,7 +1285,8 @@
         {/* Drop indicators */}
         <div style={{display:'grid',gridTemplateColumns:`repeat(${COLS},1fr)`,gap:6,marginBottom:6,height:16}}>
           {Array(COLS).fill(0).map((_,c)=>{
-            const isAdvisor=advisorCol===c,isHov=hoverCol===c&&!isBotTurn&&!gameOver&&isValidCol(board,c);
+            const canHover=(isOnline?isMyTurn:!isBotTurn)&&!gameOver&&isValidCol(board,c);
+            const isAdvisor=advisorCol===c,isHov=hoverCol===c&&canHover;
             return(
               <div key={c} style={{display:'flex',justifyContent:'center',alignItems:'center',position:'relative'}}>
                 {(isAdvisor||isHov)&&(
@@ -1079,11 +1305,12 @@
             {row.map((cell,c)=>{
               const isWinCell=winInfo?.cells.some(([wr,wc])=>wr===r&&wc===c);
               const isNew=newCell?.[0]===r&&newCell?.[1]===c;
-              const isHovCol=hoverCol===c&&!isBotTurn&&!gameOver&&isValidCol(board,c);
+              const canPlayCol=(isOnline?isMyTurn:!isBotTurn)&&!gameOver&&isValidCol(board,c);
+              const isHovCol=hoverCol===c&&canPlayCol;
               const isAdvCol=advisorCol===c&&!cell;
               return(
                 <div key={c} onClick={()=>handleColClick(c)} onMouseEnter={()=>setHoverCol(c)}
-                  style={{borderRadius:'var(--radius-sm)',padding:3,cursor:(!gameOver&&!isBotTurn&&isValidCol(board,c))?'pointer':'default',background:isAdvCol?'rgba(56,189,248,0.08)':isHovCol?'rgba(255,255,255,0.04)':'transparent',outline:isAdvCol?'1.5px solid rgba(56,189,248,0.3)':'none',outlineOffset:-2,transition:'background 0.15s'}}>
+                  style={{borderRadius:'var(--radius-sm)',padding:3,cursor:canPlayCol?'pointer':'default',background:isAdvCol?'rgba(56,189,248,0.08)':isHovCol?'rgba(255,255,255,0.04)':'transparent',outline:isAdvCol?'1.5px solid rgba(56,189,248,0.3)':'none',outlineOffset:-2,transition:'background 0.15s',opacity:isOnline&&syncing?0.7:1}}>
                   <Piece player={cell} isNew={isNew} isWinner={isWinCell} shopState={shopState}/>
                 </div>
               );
@@ -1106,9 +1333,15 @@
             >← Menu</button>
             <div>
               <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:22,letterSpacing:'-0.03em',color:T.text}}>Connect Four</span>
-              {mode===1&&diffInfo&&<span style={{marginLeft:12,fontSize:12,color:diffInfo.color,fontWeight:700}}>{diffInfo.emoji} {diffInfo.label} Bot</span>}
+              {mode===MODE_BOT&&diffInfo&&<span style={{marginLeft:12,fontSize:12,color:diffInfo.color,fontWeight:700}}>{diffInfo.emoji} {diffInfo.label} Bot</span>}
+              {isOnline&&<span style={{marginLeft:12,fontSize:12,color:T.accent,fontWeight:700}}>🌐 Online</span>}
             </div>
           </div>
+          {disconnectMsg&&(
+            <div style={{gridColumn:'1 / -1',width:'100%',padding:'12px 16px',borderRadius:'var(--radius-md)',background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.35)',color:T.danger,fontSize:13,fontWeight:600,textAlign:'center',marginBottom:12}}>
+              ⚠️ {disconnectMsg}. You can return to the menu.
+            </div>
+          )}
 
           {/* Left column */}
           <div className="side-panel side-panel-left">
@@ -1152,9 +1385,10 @@
           {showLB&&<LeaderboardModal onClose={()=>setShowLB(false)}/>}
           {showPostGame&&(
             <PostGameModal
-              stats={{winner:winInfo?.winner,isDraw:drawGame,moves:moveCount,elapsed:Math.round((Date.now()-gameStart)/1000),p1Name,p2Name:p2Label,p1Times,p2Times,mode,difficulty}}
+              stats={{winner:winInfo?.winner,isDraw:drawGame,moves:moveCount,elapsed:Math.round((Date.now()-gameStart)/1000),p1Name:displayP1Name,p2Name:p2Label,p1Times,p2Times,mode,difficulty,isOnline,myRole}}
               onRematch={()=>{setShowPostGame(false);handleRematch();}}
               onMenu={()=>{setShowPostGame(false);onMenu();}}
+              onOnlineWin={onOnlineWin}
             />
           )}
         </div>
@@ -1172,7 +1406,8 @@
           >← Menu</button>
           <div style={{textAlign:'center'}}>
             <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:20,letterSpacing:'-0.03em',color:T.text}}>Connect Four</h1>
-            {mode===1&&diffInfo&&<div style={{fontSize:11,color:diffInfo.color,fontWeight:600,marginTop:2}}>{diffInfo.emoji} {diffInfo.label} Bot</div>}
+            {mode===MODE_BOT&&diffInfo&&<div style={{fontSize:11,color:diffInfo.color,fontWeight:600,marginTop:2}}>{diffInfo.emoji} {diffInfo.label} Bot</div>}
+            {isOnline&&<div style={{fontSize:11,color:T.accent,fontWeight:600,marginTop:2}}>🌐 Online</div>}
           </div>
           <button className="desktop-nav-lb-btn" onClick={()=>setShowLB(true)} style={{padding:'8px 14px',borderRadius:'var(--radius-sm)',border:'1px solid rgba(251,191,36,0.3)',background:'rgba(251,191,36,0.06)',color:T.p2,fontSize:13,fontWeight:700,transition:'all 0.15s'}}
             onMouseEnter={e=>e.currentTarget.style.background='rgba(251,191,36,0.12)'}
@@ -1180,29 +1415,40 @@
           >🏆 Board</button>
         </div>
 
+        {disconnectMsg&&(
+          <div style={{width:'100%',maxWidth:560,marginBottom:12,padding:'12px 16px',borderRadius:'var(--radius-md)',background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.35)',color:T.danger,fontSize:13,fontWeight:600,textAlign:'center'}}>
+            ⚠️ {disconnectMsg}
+          </div>
+        )}
         {/* Player cards + timer */}
         <div style={{width:'100%',maxWidth:560,marginBottom:16,display:'flex',flexDirection:'column',gap:10}}>
           <div style={{display:'flex',gap:10,alignItems:'stretch'}}>
-            <PlayerCard name={p1Name} color={p1ColorVal} glow={playerGlowHex(p1ColorVal)} active={current===P1&&!gameOver}/>
+            <PlayerCard name={displayP1Name} color={p1ColorVal} glow={playerGlowHex(p1ColorVal)} active={current===P1&&!gameOver}/>
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px',color:T.dim,fontSize:12,fontWeight:700,letterSpacing:'0.1em'}}>VS</div>
             <PlayerCard name={p2Label} color={p2ColorVal} glow={playerGlowHex(p2ColorVal)} active={current!==P1&&!gameOver} right/>
           </div>
           {!gameOver?(
+            isOnline?(
+              <div style={{background:'rgba(12,17,32,0.6)',border:'1px solid var(--col-border)',borderRadius:'var(--radius-md)',padding:'10px 16px',textAlign:'center',fontSize:12,fontWeight:700,color:isMyTurn?curColorRaw:T.muted,letterSpacing:'0.06em',textTransform:'uppercase'}}>
+                {isMyTurn?'Your turn':'Opponent\'s turn'}
+              </div>
+            ):(
             <div style={{background:'rgba(12,17,32,0.6)',border:'1px solid var(--col-border)',borderRadius:'var(--radius-md)',padding:'10px 16px',backdropFilter:'blur(8px)'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
                   {isBotTurn&&<div style={{width:8,height:8,borderRadius:'50%',background:T.bot,animation:'pulse 0.8s ease-in-out infinite',boxShadow:`0 0 6px ${T.bot}`}}/>}
                   <span style={{fontSize:12,fontWeight:700,color:isBotTurn?T.bot:curColorRaw,letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                    {isBotTurn?`Bot thinking… (${diffInfo?.label||''})`:`${current===P1?p1Name:p2Label}'s turn`}
+                    {isBotTurn?`Bot thinking… (${diffInfo?.label||''})`:`${current===P1?displayP1Name:p2Label}'s turn`}
                   </span>
                 </div>
                 <span style={{fontFamily:'var(--font-mono)',fontWeight:600,fontSize:16,color:timerLeft<=5?T.danger:timerLeft<=10?T.timer:T.muted,animation:timerLeft<=5?'timerFlash 0.5s ease-in-out infinite':'none'}}>{timerLeft}s</span>
               </div>
               <TimerBar seconds={timerLeft} max={timerSec}/>
             </div>
+            )
           ):(
             <div style={{textAlign:'center',padding:'12px',borderRadius:'var(--radius-md)',background:drawGame?T.surface:`${winInfo?playerColorRaw(winInfo.winner,shopState):T.muted}14`,border:`1px solid ${drawGame?T.border:winInfo?playerColorRaw(winInfo.winner,shopState):T.muted}44`,fontWeight:800,fontSize:16,color:drawGame?T.muted:winInfo?playerColorRaw(winInfo.winner,shopState):T.muted}}>
-              {drawGame?"🤝 It's a Draw!":`🎉 ${winInfo?.winner===P1?p1Name:p2Label} wins!`}
+              {drawGame?"🤝 It's a Draw!":`🎉 ${winInfo?.winner===P1?displayP1Name:p2Label} wins!`}
             </div>
           )}
         </div>
@@ -1212,7 +1458,7 @@
 
         {/* Actions */}
         <div style={{marginTop:16,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
-          {!gameOver&&!isBotTurn&&<AdvisorButton onAdvisor={handleAdvisor} used={advisorUsed} disabled={gameOver||isBotTurn}/>}
+          {!gameOver&&!isBotTurn&&!isOnline&&<AdvisorButton onAdvisor={handleAdvisor} used={advisorUsed} disabled={gameOver||isBotTurn}/>}
           {gameOver&&(
             <>
               <button onClick={handleRematch} style={{padding:'10px 24px',borderRadius:'var(--radius-md)',border:'none',background:`linear-gradient(135deg,${T.accent} 0%,#0ea5e9 100%)`,color:'#020c16',fontWeight:800,fontSize:14,boxShadow:`0 4px 18px rgba(56,189,248,0.4)`,transition:'all 0.15s'}}
@@ -1231,9 +1477,10 @@
         {showLB&&<LeaderboardModal onClose={()=>setShowLB(false)}/>}
         {showPostGame&&(
           <PostGameModal
-            stats={{winner:winInfo?.winner,isDraw:drawGame,moves:moveCount,elapsed:Math.round((Date.now()-gameStart)/1000),p1Name,p2Name:p2Label,p1Times,p2Times,mode,difficulty}}
+            stats={{winner:winInfo?.winner,isDraw:drawGame,moves:moveCount,elapsed:Math.round((Date.now()-gameStart)/1000),p1Name:displayP1Name,p2Name:p2Label,p1Times,p2Times,mode,difficulty,isOnline,myRole}}
             onRematch={()=>{setShowPostGame(false);handleRematch();}}
             onMenu={()=>{setShowPostGame(false);onMenu();}}
+            onOnlineWin={onOnlineWin}
           />
         )}
       </div>
@@ -1249,8 +1496,59 @@
     const[savedGame,setSaved]=useState(null);
     const[shopState,setShopState]=useState(loadShopState);
     const[showShop,setShowShop]=useState(false);
+    const[onlineWait,setOnlineWait]=useState(null);
+    const[showUsernamePrompt,setShowUsernamePrompt]=useState(false);
 
     useEffect(()=>{try{const r=localStorage.getItem(STORAGE_KEY);if(r)setSaved(JSON.parse(r));}catch{}},[]);
+
+    function enterOnlineGame(meta){
+      setOnlineWait(null);
+      setConfig({
+        mode:MODE_ONLINE,
+        p1Name:meta.hostName||meta.playerName||'Host',
+        p2Name:meta.guestName||'Guest',
+        hostName:meta.hostName||meta.playerName||'Host',
+        guestName:meta.guestName||'Guest',
+        timerSec:meta.timerSec||DEFAULT_TIMER,
+        roomPath:meta.roomPath,
+        myRole:meta.role,
+        isHost:meta.isHost,
+        playerName:meta.playerName,
+        code:meta.code,
+      });
+      setScreen('game');
+    }
+
+    function handleOnlineStart(meta){
+      if(meta.waiting){
+        setOnlineWait(meta);
+        setScreen('online-wait');
+        return;
+      }
+      enterOnlineGame(meta);
+    }
+
+    useEffect(()=>{
+      if(screen!=='online-wait'||!onlineWait?.roomPath)return;
+      const unsub=FB.subscribeRoom(onlineWait.roomPath,(room)=>{
+        if(room&&room.status==='playing'&&room.guestId){
+          enterOnlineGame({
+            ...onlineWait,
+            hostName:room.hostName,
+            guestName:room.guestName,
+            waiting:false,
+          });
+        }
+      });
+      return unsub;
+    },[screen,onlineWait?.roomPath]);
+
+    async function handleCancelOnlineWait(){
+      if(onlineWait?.roomPath)await FB.leaveRoom(onlineWait.roomPath,FB.getUid());
+      await FB.cancelQueue();
+      setOnlineWait(null);
+      setScreen('setup');
+    }
 
     function handleStart(cfg,resume=false){
       if(resume&&savedGame){setConfig({mode:savedGame.mode,p1Name:savedGame.p1Name,p2Name:savedGame.p2Name,timerSec:savedGame.timerSec,difficulty:savedGame.difficulty||'hard',resumeState:savedGame});}
@@ -1258,18 +1556,37 @@
       setScreen('game');
     }
     function handleMenu(){
-      setScreen('setup');setConfig(null);
+      if(gameConfig?.roomPath)FB.leaveRoom(gameConfig.roomPath,FB.getUid());
+      FB.cancelQueue();
+      setScreen('setup');setConfig(null);setOnlineWait(null);
       try{const r=localStorage.getItem(STORAGE_KEY);if(r)setSaved(JSON.parse(r));}catch{}
     }
     function handleShopSave(newState){setShopState(newState);saveShop(newState);}
+    function handleOnlineWinPrompt(){
+      const saved=FB.getSavedUsername();
+      if(saved){FB.recordGlobalWin(saved);return;}
+      setShowUsernamePrompt(true);
+    }
+    async function saveGlobalWin(name){
+      await FB.recordGlobalWin(name);
+      setShowUsernamePrompt(false);
+    }
 
     return(
       <>
-        {screen==='setup'
-          ?<SetupScreen onStart={handleStart} savedGame={savedGame} shopState={shopState} onOpenShop={()=>setShowShop(true)}/>
-          :<GameScreen config={gameConfig} onMenu={handleMenu} shopState={shopState} onOpenShop={()=>setShowShop(true)}/>
-        }
+        {screen==='setup'&&<SetupScreen onStart={handleStart} savedGame={savedGame} shopState={shopState} onOpenShop={()=>setShowShop(true)} onOnlineStart={handleOnlineStart}/>}
+        {screen==='online-wait'&&(
+          <OnlineWaitingScreen
+            title={onlineWait?.code?'Private Room':'Finding opponent…'}
+            subtitle={onlineWait?.code?'Waiting for a friend to join with your code.':'Searching the random queue for your next rival.'}
+            code={onlineWait?.code}
+            status="Listening for players…"
+            onCancel={handleCancelOnlineWait}
+          />
+        )}
+        {screen==='game'&&gameConfig&&<GameScreen config={gameConfig} onMenu={handleMenu} shopState={shopState} onOpenShop={()=>setShowShop(true)} onOnlineWin={handleOnlineWinPrompt}/>}
         {showShop&&<ShopModal onClose={()=>setShowShop(false)} shopState={shopState} onSave={handleShopSave}/>}
+        {showUsernamePrompt&&<UsernamePromptModal defaultName={FB.getSavedUsername()||gameConfig?.playerName} onSave={saveGlobalWin} onSkip={()=>setShowUsernamePrompt(false)}/>}
       </>
     );
   }
