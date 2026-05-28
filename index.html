@@ -548,8 +548,10 @@
     const[tab,setTab]=useState('pieces');
     const[local,setLocal]=useState({...shopState});
     const[showPro,setShowPro]=useState(null);
+    useEffect(()=>{setLocal({...shopState});},[shopState]);
+    function applyShop(next){setLocal(next);onSave(next);saveShop(next);}
     function handleProClick(label){if(!local.proUnlocked){setShowPro(label);}}
-    function save(){onSave(local);onClose();}
+    function save(){applyShop(local);onClose();}
     const activeTheme=BOARD_THEMES.find(t=>t.id===local.boardTheme)||BOARD_THEMES[0];
     const tabBtn=(id,label,emoji)=>(
       <button onClick={()=>setTab(id)} style={{flex:1,padding:'10px 12px',borderRadius:'var(--radius-sm)',border:'none',background:tab===id?'rgba(56,189,248,0.12)':'transparent',color:tab===id?T.accent:T.muted,fontWeight:700,fontSize:13,transition:'all 0.15s',borderBottom:tab===id?`2px solid ${T.accent}`:'2px solid transparent'}}>
@@ -562,7 +564,7 @@
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
             <div>
               <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,letterSpacing:'-0.02em',color:T.text}}>🛒 Customization Shop</h2>
-              <p style={{color:T.muted,fontSize:12,marginTop:2}}>Personalize your game experience</p>
+              <p style={{color:T.muted,fontSize:12,marginTop:2}}>Personalize your game · choices save automatically</p>
             </div>
             {local.proUnlocked&&<div style={{padding:'4px 12px',borderRadius:99,background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.35)',fontSize:11,color:'#f59e0b',fontWeight:700}}>👑 PRO ACTIVE</div>}
           </div>
@@ -578,7 +580,7 @@
                   const active=local.pieceShape===s.id,locked=s.pro&&!local.proUnlocked;
                   const previewCol=local.p1Color||'#ff3d6b',previewGlow=playerGlowHex(previewCol);
                   return(
-                    <button key={s.id} onClick={()=>{if(locked){handleProClick(s.label);return;}setLocal(p=>({...p,pieceShape:s.id}));}}
+                    <button key={s.id} onClick={()=>{if(locked){handleProClick(s.label);return;}applyShop({...local,pieceShape:s.id});}}
                       style={{padding:'14px 12px',borderRadius:'var(--radius-md)',border:`1px solid ${active?T.accent:locked?'rgba(245,158,11,0.25)':T.border}`,background:active?'rgba(56,189,248,0.1)':locked?'rgba(245,158,11,0.04)':T.surface,color:active?T.accent:locked?'#f59e0b':T.muted,transition:'all 0.15s',textAlign:'left',position:'relative',overflow:'hidden',cursor:'pointer'}}>
                       {locked&&<div style={{position:'absolute',top:6,right:6,background:'rgba(245,158,11,0.9)',borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,color:'#030712',animation:'proGlow 2s ease-in-out infinite'}}>🔒 PRO</div>}
                       <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -602,7 +604,7 @@
               <div style={{display:'flex',flexWrap:'wrap',gap:10,marginBottom:24}}>
                 {PLAYER_COLORS.map(c=>{
                   const active=local.p1Color===c.hex;
-                  return(<button key={c.id} title={c.label} onClick={()=>setLocal(p=>({...p,p1Color:c.hex}))}
+                  return(<button key={c.id} title={c.label} onClick={()=>applyShop({...local,p1Color:c.hex})}
                     style={{width:38,height:38,borderRadius:'50%',border:`2.5px solid ${active?'#fff':c.hex+'44'}`,background:`radial-gradient(circle at 35% 30%,#fff,${c.hex})`,cursor:'pointer',boxShadow:active?`0 0 0 3px ${c.hex},0 0 14px ${c.hex}88`:`0 0 6px ${c.hex}44`,transition:'all 0.15s',transform:active?'scale(1.18)':'scale(1)'}}/>);
                 })}
               </div>
@@ -613,7 +615,7 @@
               <div style={{display:'flex',flexWrap:'wrap',gap:10,opacity:local.proUnlocked?1:0.35,pointerEvents:local.proUnlocked?'auto':'none'}}>
                 {PLAYER_COLORS.map(c=>{
                   const active=local.p2Color===c.hex;
-                  return(<button key={c.id} title={c.label} onClick={()=>{if(!local.proUnlocked){handleProClick('Player 2 Custom Color');return;}setLocal(p=>({...p,p2Color:c.hex}));}}
+                  return(<button key={c.id} title={c.label} onClick={()=>{if(!local.proUnlocked){handleProClick('Player 2 Custom Color');return;}applyShop({...local,p2Color:c.hex});}}
                     style={{width:38,height:38,borderRadius:'50%',border:`2.5px solid ${active?'#fff':c.hex+'44'}`,background:`radial-gradient(circle at 35% 30%,#fff,${c.hex})`,cursor:local.proUnlocked?'pointer':'not-allowed',boxShadow:active?`0 0 0 3px ${c.hex},0 0 14px ${c.hex}88`:`0 0 6px ${c.hex}44`,transition:'all 0.15s',transform:active?'scale(1.18)':'scale(1)'}}/>);
                 })}
               </div>
@@ -627,7 +629,7 @@
                 {BOARD_THEMES.map(th=>{
                   const active=local.boardTheme===th.id,locked=th.pro&&!local.proUnlocked;
                   return(
-                    <button key={th.id} onClick={()=>{if(locked){handleProClick(th.label);return;}setLocal(p=>({...p,boardTheme:th.id}));}}
+                    <button key={th.id} onClick={()=>{if(locked){handleProClick(th.label);return;}applyShop({...local,boardTheme:th.id});}}
                       style={{padding:0,borderRadius:'var(--radius-md)',border:`2px solid ${active?T.accent:locked?'rgba(245,158,11,0.25)':T.border}`,background:'transparent',cursor:'pointer',overflow:'hidden',transition:'all 0.15s',boxShadow:active?`0 0 20px rgba(56,189,248,0.25)`:'none',position:'relative'}}>
                       {locked&&<div style={{position:'absolute',top:8,right:8,zIndex:2,background:'rgba(245,158,11,0.92)',borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,color:'#030712',animation:'proGlow 2s ease-in-out infinite'}}>🔒 PRO</div>}
                       <div style={{background:th.bg,padding:'12px 10px'}}>
@@ -671,7 +673,7 @@
             >Cancel</button>
           </div>
         </ModalOverlay>
-        {showPro&&<ProModal previewItem={showPro} onClose={()=>setShowPro(null)} onActivate={()=>{const n={...local,proUnlocked:true};setLocal(n);onSave(n);}}/>}
+        {showPro&&<ProModal previewItem={showPro} onClose={()=>setShowPro(null)} onActivate={()=>{applyShop({...local,proUnlocked:true});}}/>}
       </>
     );
   }
@@ -1001,7 +1003,7 @@
               <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('random')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(251,191,36,0.35)',background:'rgba(251,191,36,0.08)',color:T.p2,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
                 🎲 Play with Random
               </button>
-              {onlineErr&&<p style={{color:T.danger,fontSize:12}}>{onlineErr}</p>}
+              {onlineErr&&<p style={{color:T.danger,fontSize:12,lineHeight:1.5}}>{onlineErr}</p>}
               <p style={{color:T.dim,fontSize:11,lineHeight:1.5}}>Host plays <span style={{color:T.p1,fontWeight:600}}>Red</span>, guest plays <span style={{color:T.p2,fontWeight:600}}>Yellow</span>. Moves sync in real time.</p>
             </div>
           )}
@@ -1562,6 +1564,7 @@
       try{const r=localStorage.getItem(STORAGE_KEY);if(r)setSaved(JSON.parse(r));}catch{}
     }
     function handleShopSave(newState){setShopState(newState);saveShop(newState);}
+    useEffect(()=>{if(screen==='setup')setShopState(loadShopState());},[screen]);
     function handleOnlineWinPrompt(){
       const saved=FB.getSavedUsername();
       if(saved){FB.recordGlobalWin(saved);return;}
