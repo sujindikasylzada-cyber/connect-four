@@ -33,8 +33,10 @@
       .map(() => Array(COLS).fill(null));
   }
 
-  /** Firebase RTDB deletes null keys — empty holes become undefined and block moves */
-  function normalizeBoard(board) {
+  const EMPTY_CELL = '';
+
+  /** Firebase RTDB removes null keys — store empty cells as '' and normalize reads to null */
+  function boardFromStorage(board) {
     const out = emptyBoard();
     if (!board) return out;
     const rows = Array.isArray(board) ? board : Object.keys(board).sort((a, b) => +a - +b).map((k) => board[k]);
@@ -48,6 +50,36 @@
       }
     }
     return out;
+  }
+
+  function boardToStorage(board) {
+    const norm = boardFromStorage(board);
+    const out = {};
+    for (let r = 0; r < ROWS; r++) {
+      out[r] = {};
+      for (let c = 0; c < COLS; c++) {
+        out[r][c] = norm[r][c] === P1 || norm[r][c] === P2 ? norm[r][c] : EMPTY_CELL;
+      }
+    }
+    return out;
+  }
+
+  function normalizeBoard(board) {
+    return boardFromStorage(board);
+  }
+
+  function resetRoomForPlay(room) {
+    room.status = 'playing';
+    room.board = boardToStorage(emptyBoard());
+    room.current = P1;
+    room.moveCount = 0;
+    room.moveSeq = 0;
+    room.winInfo = null;
+    room.isDraw = false;
+    room.lastMove = null;
+    room.disconnected = null;
+    room.rematchVotes = {};
+    return room;
   }
 
   function lbKey(name) {
@@ -86,9 +118,10 @@
       guestId: null,
       hostName,
       guestName: null,
-      board: emptyBoard(),
+      board: boardToStorage(emptyBoard()),
       current: P1,
       moveCount: 0,
+      moveSeq: 0,
       winInfo: null,
       isDraw: false,
       lastMove: null,
@@ -209,7 +242,7 @@
       if (room.hostId === uid) return;
       room.guestId = uid;
       room.guestName = guestName;
-      room.status = 'playing';
+      resetRoomForPlay(room);
       room.updatedAt = firebase.database.ServerValue.TIMESTAMP;
       return room;
     });
@@ -271,7 +304,7 @@
       if (room.hostId === uid) return;
       room.guestId = uid;
       room.guestName = playerName;
-      room.status = 'playing';
+      resetRoomForPlay(room);
       room.updatedAt = firebase.database.ServerValue.TIMESTAMP;
       return room;
     });
@@ -297,8 +330,9 @@
 
   function normalizeRoom(room) {
     if (!room) return room;
-    if (room.board) room.board = normalizeBoard(room.board);
-    return room;
+    const copy = Object.assign({}, room);
+    if (copy.board) copy.board = normalizeBoard(copy.board);
+    return copy;
   }
 
   function subscribeRoom(roomPath, onUpdate) {
@@ -321,20 +355,42 @@
   }
 
   async function dropPiece(roomPath, col, player, helpers) {
+    const r = await init();
+    if (!r.ok) return { ok: false, reason: 'init_failed' };
     const { isValidCol, dropPiece: drop, checkWinner, isDraw, getDropRow } = helpers;
     const ref = db.ref(roomPath);
-    let applied = false;
-    const result = await ref.transaction((room) => {
-      if (!room) return room;
-      if (room.status !== 'playing') return room;
-      if (room.current !== player) return room;
-      const board = normalizeBoard(room.board);
-      if (!isValidCol(board, col)) return room;
+    let failReason = 'not_applied';
+    let appliedRow = -1;
+
+    const tx = await ref.transaction((room) => {
+      if (!room) {
+        failReason = 'no_room';
+        return;
+      }
+      if (room.status !== 'playing') {
+        failReason = 'not_playing';
+        return;
+      }
+      if (room.current !== player) {
+        failReason = 'wrong_turn';
+        return;
+      }
+      const board = boardFromStorage(room.board);
+      if (!isValidCol(board, col)) {
+        failReason = 'invalid_col';
+        return;
+      }
       const row = getDropRow(board, col);
       const next = drop(board, col, player);
-      if (!next) return room;
-      room.board = next;
-      room.moveCount = (room.moveCount || 0) + 1;
+      if (!next) {
+        failReason = 'drop_failed';
+        return;
+      }
+      appliedRow = row;
+      const seq = (room.moveSeq || room.moveCount || 0) + 1;
+      room.board = boardToStorage(next);
+      room.moveCount = seq;
+      room.moveSeq = seq;
       room.lastMove = { col, row, player, at: Date.now() };
       const win = checkWinner(next);
       if (win) {
@@ -349,10 +405,14 @@
         room.current = player === P1 ? P2 : P1;
       }
       room.updatedAt = firebase.database.ServerValue.TIMESTAMP;
-      applied = true;
+      failReason = null;
       return room;
     });
-    return { ok: result.committed && applied, reason: result.committed ? (applied ? null : 'not_applied') : 'transaction_failed' };
+
+    if (!tx.committed || failReason) {
+      return { ok: false, reason: failReason || 'transaction_failed' };
+    }
+    return { ok: true, row: appliedRow, col };
   }
 
   async function requestRematch(roomPath, playerUid) {
@@ -365,9 +425,10 @@
       const hostReady = !!votes[room.hostId];
       const guestReady = room.guestId ? !!votes[room.guestId] : false;
       if (hostReady && guestReady) {
-        room.board = emptyBoard();
+        room.board = boardToStorage(emptyBoard());
         room.current = P1;
         room.moveCount = 0;
+        room.moveSeq = 0;
         room.winInfo = null;
         room.isDraw = false;
         room.lastMove = null;

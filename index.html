@@ -379,10 +379,11 @@
   ═════════════════════════════════════════════*/
   function Piece({player,isNew,isWinner,shopState}){
     const shape=shopState?shopState.pieceShape:'classic';
-    if(!player){
+    const token=player===P1||player===P2?player:null;
+    if(!token){
       return(<div style={{width:'100%',aspectRatio:'1',borderRadius:shape==='bricks'?'25%':'50%',background:'var(--col-hole)',boxShadow:'inset 0 3px 10px rgba(0,0,0,0.8),inset 0 1px 3px rgba(0,0,0,0.9)',border:'1px solid rgba(0,0,0,0.5)'}}/>);
     }
-    const col=playerColorRaw(player,shopState);
+    const col=playerColorRaw(token,shopState);
     const glow=playerGlowHex(col);
     const anim=isNew?{animation:'dropIn 0.42s cubic-bezier(0.22,1,0.36,1) forwards',transformOrigin:'top center'}
                :isWinner?{animation:'winPulse 0.9s ease-in-out infinite'}:{};
@@ -1095,6 +1096,8 @@
     const[syncing,setSyncing]=useState(false);
     const moveBusyRef=useRef(false);
     const lastMoveRef=useRef(null);
+    const lastMoveSeqRef=useRef(-1);
+    const presenceSetRef=useRef(false);
     const timerRef=useRef(null),botTimeout=useRef(null);
     const isDesktop=useDesktop();
     const isBotTurn=!isOnline&&mode===MODE_BOT&&current===BOT;
@@ -1114,18 +1117,22 @@
 
     useEffect(()=>{
       if(!isOnline||!roomPath)return;
-      if(myRole)FB.setPresence(roomPath,myRole,true);
+      const roleForPresence=myRole||P1;
+      if(!presenceSetRef.current){
+        presenceSetRef.current=true;
+        FB.setPresence(roomPath,roleForPresence,true);
+      }
       const unsub=FB.subscribeRoom(roomPath,(room)=>{
         if(!room)return;
         setSyncing(false);
         const uid=FB.getUid();
         const liveRole=FB.roleFromRoom(room,uid);
-        if(liveRole){
-          setOnlineRole(liveRole);
-          FB.setPresence(roomPath,liveRole,true);
-        }
-        if(room.board)setBoard(room.board);
-        if(room.current)setCurrent(room.current);
+        if(liveRole)setOnlineRole(liveRole);
+        const seq=room.moveSeq!=null?room.moveSeq:(room.moveCount||0);
+        if(seq<lastMoveSeqRef.current)return;
+        lastMoveSeqRef.current=seq;
+        if(room.board)setBoard(room.board.map((row)=>[...row]));
+        if(room.status==='playing'&&room.current)setCurrent(room.current);
         setMoveCount(room.moveCount||0);
         if(room.status==='playing'){
           setMoveErr(null);
@@ -1152,8 +1159,8 @@
         if(room.status==='finished'&&!showPostGame)setTimeout(()=>setShowPostGame(true),600);
         if(room.status==='playing'&&room.moveCount===0){setShowPostGame(false);}
       });
-      return()=>{unsub();};
-    },[roomPath,isOnline,myRole]);
+      return()=>{presenceSetRef.current=false;unsub();};
+    },[roomPath,isOnline]);
 
     useEffect(()=>{
       if(isOnline||gameOver)return;
@@ -1203,13 +1210,27 @@
         setSyncing(true);
         try{
           const res=await FB.dropPiece(roomPath,col,turnRole,{isValidCol,dropPiece,checkWinner,isDraw,getDropRow});
-          if(!res.ok){
+          if(res.ok){
+            const row=res.row!=null?res.row:getDropRow(board,col);
+            const next=dropPiece(board,col,turnRole);
+            if(next){
+              setBoard(next);
+              const seq=lastMoveSeqRef.current+1;
+              lastMoveSeqRef.current=seq;
+              setMoveCount(seq);
+              if(row>=0){setNewCell([row,col]);setTimeout(()=>setNewCell(null),450);}
+              setCurrent(turnRole===P1?P2:P1);
+              setMoveErr(null);
+            }
+          }else{
             const msgs={
-              wrong_turn:'Not your turn',
+              wrong_turn:'Not your turn — wait for opponent',
               not_playing:'Game is not active yet',
               invalid_col:'That column is full',
               no_room:'Room not found',
               init_failed:'Firebase not connected',
+              not_applied:'Move could not apply — try again',
+              transaction_failed:'Network conflict — tap again',
               update_failed:res.error||'Move blocked — check Firebase rules',
             };
             setMoveErr(msgs[res.reason]||'Move failed — try again');
@@ -1286,6 +1307,7 @@
             <div style={{fontSize:11,fontWeight:700,color:isMyTurn?curColorRaw:T.muted,letterSpacing:'0.06em',textTransform:'uppercase'}}>
               {isMyTurn?'Your turn — drop a piece':`Waiting for opponent… (${current===P1?displayP1Name:p2Label})`}
             </div>
+            {isOnline&&<div style={{marginTop:4,fontSize:10,color:T.dim}}>You: {myPlayer===P1?'Red (host)':'Yellow (guest)'} · Turn: {current===P1?displayP1Name:p2Label}</div>}
             {moveErr&&<div style={{marginTop:8,fontSize:11,color:T.danger}}>{moveErr}</div>}
           </GlassPanel>
         )}
@@ -1477,6 +1499,7 @@
                 <div style={{fontSize:12,fontWeight:700,color:isMyTurn?curColorRaw:T.muted,letterSpacing:'0.06em',textTransform:'uppercase'}}>
                   {isMyTurn?'Your turn — tap a column':'Opponent\'s turn'}
                 </div>
+                <div style={{marginTop:4,fontSize:10,color:T.dim}}>You: {myPlayer===P1?'Red (host)':'Yellow (guest)'} · Turn: {current===P1?displayP1Name:p2Label}</div>
                 {moveErr&&<div style={{marginTop:6,fontSize:11,color:T.danger}}>{moveErr}</div>}
               </div>
             ):(
