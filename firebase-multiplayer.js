@@ -521,6 +521,40 @@
     return queueRef().remove();
   }
 
+  /** Probe config, anonymous auth, and RTDB read access (for setup UI). */
+  async function checkHealth() {
+    const checks = { config: false, auth: false, database: false };
+    if (!isConfigured()) {
+      return {
+        ok: false,
+        checks,
+        message: 'Edit firebase-config.js with your Firebase web app credentials.',
+      };
+    }
+    checks.config = true;
+    const r = await init();
+    if (!r.ok) {
+      return { ok: false, checks, message: initError || r.error || 'Could not sign in.' };
+    }
+    checks.auth = true;
+    try {
+      await db.ref('leaderboard').limitToFirst(1).once('value');
+      checks.database = true;
+      return { ok: true, checks, uid, message: 'Online multiplayer is ready.' };
+    } catch (e) {
+      const msg = friendlyFirebaseError(e);
+      return {
+        ok: false,
+        checks,
+        uid,
+        message:
+          msg.indexOf('permission') !== -1 || (e && e.code) === 'PERMISSION_DENIED'
+            ? 'Realtime Database rules not published. Paste firebase-database.rules.json in Firebase Console → Rules → Publish.'
+            : msg,
+      };
+    }
+  }
+
   global.C4Firebase = {
     init,
     isReady: () => ready,
@@ -542,6 +576,7 @@
     getSavedUsername,
     saveUsername,
     cancelQueue,
+    checkHealth,
     GLOBAL_USER_KEY,
   };
 })(typeof window !== 'undefined' ? window : this);

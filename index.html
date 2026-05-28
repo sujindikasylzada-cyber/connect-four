@@ -15,8 +15,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="firebase-multiplayer.js"></script>
+  <script>
+    (function(){
+      var t=localStorage.getItem('c4_theme');
+      document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');
+    })();
+  </script>
   <style>
-    :root{
+    :root,[data-theme="dark"]{
       --font-display:'Syne',sans-serif;
       --font-body:'Outfit',sans-serif;
       --font-mono:'JetBrains Mono',monospace;
@@ -37,6 +43,40 @@
       --col-success:#34d399;--col-danger:#f87171;--col-timer:#fbbf24;
       --radius-sm:8px;--radius-md:14px;--radius-lg:22px;--radius-xl:32px;
     }
+    [data-theme="light"]{
+      --col-bg:#e8edf5;--col-bg2:#dce4f0;
+      --col-surface:rgba(15,23,42,0.05);
+      --col-surface-high:rgba(15,23,42,0.08);
+      --col-glass:rgba(255,255,255,0.88);
+      --col-border:rgba(15,23,42,0.12);
+      --col-border-hi:rgba(15,23,42,0.2);
+      --col-board:#b8c8de;--col-board-rim:#7c8fa8;--col-hole:#9aacbe;
+      --col-text:#0f172a;
+      --col-text-muted:rgba(15,23,42,0.58);
+      --col-text-dim:rgba(15,23,42,0.38);
+      --col-accent-glow:rgba(56,189,248,0.22);
+    }
+    [data-theme="light"] body::before{
+      background-image:radial-gradient(circle,rgba(15,23,42,0.07) 1px,transparent 1px);
+    }
+    [data-theme="light"] body::after{
+      background:radial-gradient(ellipse 60% 40% at 15% 20%,rgba(255,61,107,0.06) 0%,transparent 70%),
+        radial-gradient(ellipse 50% 35% at 85% 75%,rgba(167,139,250,0.06) 0%,transparent 70%),
+        radial-gradient(ellipse 40% 30% at 55% 50%,rgba(56,189,248,0.05) 0%,transparent 70%);
+    }
+    .theme-toggle{
+      position:fixed;top:14px;right:14px;z-index:100;
+      display:flex;align-items:center;gap:6px;
+      padding:8px 12px;border-radius:99px;
+      border:1px solid var(--col-border-hi);
+      background:var(--col-glass);
+      color:var(--col-text-muted);
+      font-size:12px;font-weight:700;
+      backdrop-filter:blur(12px);
+      box-shadow:0 4px 20px rgba(0,0,0,0.15);
+      transition:background .2s,border-color .2s,color .2s;
+    }
+    .theme-toggle:hover{border-color:var(--col-accent);color:var(--col-text);}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     html,body,#root{min-height:100vh;background:var(--col-bg);color:var(--col-text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;}
     ::-webkit-scrollbar{width:5px;}
@@ -180,9 +220,25 @@
   ═════════════════════════════════════════════*/
   const ROWS=6,COLS=7,EMPTY=null,P1='P1',P2='P2',BOT='BOT';
   const MODE_BOT=1,MODE_LOCAL=2,MODE_ONLINE=3;
-  const STORAGE_KEY='c4_game_state',LB_KEY='c4_leaderboard_v2',SHOP_KEY='c4_shop_v1';
+  const STORAGE_KEY='c4_game_state',LB_KEY='c4_leaderboard_v2',SHOP_KEY='c4_shop_v1',THEME_KEY='c4_theme';
   const DEFAULT_TIMER=15;
   const FB=C4Firebase;
+  const LIVE_HOST='sujindikasylzada-cyber.github.io';
+
+  function loadTheme(){try{return localStorage.getItem(THEME_KEY)==='light'?'light':'dark';}catch{return 'dark';}}
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme',theme==='light'?'light':'dark');
+    try{localStorage.setItem(THEME_KEY,theme);}catch(_){}
+  }
+  function ThemeToggle(){
+    const[theme,setTheme]=useState(loadTheme);
+    return(
+      <button type="button" className="theme-toggle" onClick={()=>{const next=theme==='dark'?'light':'dark';setTheme(next);applyTheme(next);}} aria-label={theme==='dark'?'Switch to light theme':'Switch to dark theme'} title={theme==='dark'?'Light mode':'Dark mode'}>
+        <span style={{fontSize:15}}>{theme==='dark'?'☀️':'🌙'}</span>
+        <span>{theme==='dark'?'Light':'Dark'}</span>
+      </button>
+    );
+  }
 
   /* ════════════════════════════════════════════
      DIFFICULTIES
@@ -504,7 +560,7 @@
         <div style={{textAlign:'center'}}>
           <div style={{fontSize:52,marginBottom:12,animation:'proGlow 2s ease-in-out infinite',display:'inline-block'}}>👑</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:800,letterSpacing:'-0.03em',color:'#f59e0b',marginBottom:6,textShadow:'0 0 20px #f59e0b66'}}>Connect Four PRO</h2>
-          <p style={{color:T.muted,fontSize:14,lineHeight:1.6,marginBottom:8}}>Unlock premium shapes, boards, and global multiplayer</p>
+          <p style={{color:T.muted,fontSize:14,lineHeight:1.6,marginBottom:8}}>Unlock premium piece shapes and board themes</p>
           {previewItem&&(
             <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'6px 14px',borderRadius:99,background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.35)',marginBottom:20,fontSize:13,color:'#f59e0b',fontWeight:600}}>
               <span style={{animation:'lockBounce 1.5s ease-in-out infinite'}}>🔒</span>
@@ -512,9 +568,9 @@
             </div>
           )}
           <div style={{background:'rgba(255,255,255,0.03)',borderRadius:'var(--radius-md)',padding:'16px',marginBottom:20,textAlign:'left'}}>
-            {[{icon:'❤️',text:'Heart & Star piece shapes'},{icon:'🌌',text:'Neon Genesis & Golden Royal boards'},{icon:'🌍',text:'Global online multiplayer (coming soon)'},{icon:'🎨',text:'Custom piece color for Player 2'},{icon:'📊',text:'Extended game history & analytics'}]
+            {[{icon:'❤️',text:'Heart & Star piece shapes'},{icon:'🌌',text:'Neon Genesis & Golden Royal boards'},{icon:'🎨',text:'Extra color options in the shop'},{icon:'📊',text:'Extended stats (coming soon)'}]
               .map(({icon,text},i)=>(
-                <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:i<4?`1px solid ${T.border}`:'none'}}>
+                <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:i<3?`1px solid ${T.border}`:'none'}}>
                   <span style={{fontSize:18,minWidth:24}}>{icon}</span>
                   <span style={{color:T.text,fontSize:14}}>{text}</span>
                   <span style={{marginLeft:'auto',color:T.success,fontSize:12}}>✓</span>
@@ -813,6 +869,54 @@
   }
 
   /* ════════════════════════════════════════════
+     FIREBASE STATUS (setup)
+  ═════════════════════════════════════════════*/
+  function FirebaseStatus(){
+    const[health,setHealth]=useState({loading:true});
+    useEffect(()=>{
+      let cancelled=false;
+      (async()=>{
+        const h=await FB.checkHealth();
+        if(!cancelled)setHealth({loading:false,...h});
+      })();
+      return()=>{cancelled=true;};
+    },[]);
+    if(health.loading){
+      return(
+        <div style={{width:'100%',maxWidth:420,marginTop:20,padding:'12px 14px',borderRadius:'var(--radius-md)',background:T.surface,border:`1px solid ${T.border}`,fontSize:12,color:T.muted}}>
+          Checking Firebase…
+        </div>
+      );
+    }
+    const row=(ok,label)=>(
+      <div key={label} style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:ok?T.text:T.muted}}>
+        <span style={{color:ok?T.success:T.danger,fontWeight:800}}>{ok?'✓':'✗'}</span>
+        <span>{label}</span>
+      </div>
+    );
+    return(
+      <div style={{width:'100%',maxWidth:420,marginTop:20,padding:'14px 16px',borderRadius:'var(--radius-md)',background:health.ok?'rgba(52,211,153,0.08)':'rgba(248,113,113,0.06)',border:`1px solid ${health.ok?'rgba(52,211,153,0.35)':'rgba(248,113,113,0.3)'}`,display:'flex',flexDirection:'column',gap:8}}>
+        <div style={{fontWeight:800,fontSize:13,color:health.ok?T.success:T.danger}}>
+          {health.ok?'🌐 Online services ready':'⚠️ Firebase setup needed'}
+        </div>
+        {health.checks&&(
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            {row(health.checks.config,'firebase-config.js')}
+            {row(health.checks.auth,'Anonymous sign-in enabled')}
+            {row(health.checks.database,'Realtime Database rules published')}
+          </div>
+        )}
+        {!health.ok&&health.message&&<p style={{fontSize:11,color:T.muted,lineHeight:1.5,margin:0}}>{health.message}</p>}
+        {!health.ok&&(
+          <p style={{fontSize:10,color:T.dim,lineHeight:1.5,margin:0}}>
+            In Firebase Console: enable <strong>Anonymous</strong> auth, add <strong>{LIVE_HOST}</strong> under Authorized domains, and publish rules from <code style={{fontFamily:'var(--font-mono)'}}>firebase-database.rules.json</code>.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════
      GLOBAL LEADERBOARD (Firebase)
   ═════════════════════════════════════════════*/
   function GlobalLeaderboard(){
@@ -822,7 +926,9 @@
     useEffect(()=>{
       let cancelled=false;
       (async()=>{
-        if(!FB.isConfigured()){setErr('Add Firebase config to enable global rankings.');setLoading(false);return;}
+        if(!FB.isConfigured()){setErr('Firebase is not configured — global rankings unavailable.');setLoading(false);return;}
+        const health=await FB.checkHealth();
+        if(!health.ok){setErr(health.message||'Fix Firebase setup (see status below).');setLoading(false);return;}
         const r=await FB.init();
         if(cancelled)return;
         if(!r.ok){setErr(r.error||'Could not connect');setLoading(false);return;}
@@ -838,7 +944,7 @@
           <span style={{fontSize:20}}>🌍</span>
           <div>
             <div style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:16,letterSpacing:'-0.02em',color:T.text}}>Global Leaderboard</div>
-            <div style={{fontSize:10,color:T.dim,marginTop:2}}>Top 10 · online wins</div>
+            <div style={{fontSize:10,color:T.dim,marginTop:2}}>Top 10 · wins from online matches</div>
           </div>
         </div>
         {loading?(
@@ -846,7 +952,7 @@
         ):err?(
           <div style={{textAlign:'center',padding:'16px 0',color:T.danger,fontSize:12,lineHeight:1.5}}>{err}</div>
         ):rows.length===0?(
-          <div style={{textAlign:'center',padding:'20px 0',color:T.dim,fontSize:12}}>No online wins yet. Be the first!</div>
+          <div style={{textAlign:'center',padding:'20px 0',color:T.dim,fontSize:12}}>No ranked wins yet. Win an online match to appear here.</div>
         ):(
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
             {rows.map((row,i)=>(
@@ -917,7 +1023,10 @@
     const[joinCode,setJoinCode]=useState('');
     const[onlineBusy,setOnlineBusy]=useState(false);
     const[onlineErr,setOnlineErr]=useState(null);
+    const[fbReady,setFbReady]=useState(null);
     const globalName=FB.getSavedUsername()||p1Name;
+    useEffect(()=>{FB.checkHealth().then((h)=>setFbReady(!!h.ok));},[]);
+    const canPlayOnline=FB.isConfigured()&&fbReady===true;
     const orbs=[T.p1,T.p2,T.bot,T.accent];
     const selDiff=DIFFICULTIES.find(d=>d.id===difficulty);
     async function runOnline(action){
@@ -949,9 +1058,9 @@
             ))}
           </div>
           <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'clamp(36px,8vw,52px)',letterSpacing:'-0.04em',color:T.text,marginBottom:6}}>Connect Four</h1>
-          <p style={{color:T.muted,fontSize:14,letterSpacing:'0.12em',textTransform:'uppercase',fontWeight:500}}>Strategy · Speed · Smarts</p>
+          <p style={{color:T.muted,fontSize:14,letterSpacing:'0.12em',textTransform:'uppercase',fontWeight:500}}>Bot · Local · Online</p>
         </div>
-        <div style={{width:'100%',maxWidth:420,background:'rgba(12,17,32,0.7)',border:'1px solid var(--col-border)',borderRadius:'var(--radius-xl)',padding:'28px 24px',backdropFilter:'blur(16px)',boxShadow:'0 24px 64px rgba(0,0,0,0.5)',display:'flex',flexDirection:'column',gap:20}}>
+        <div style={{width:'100%',maxWidth:420,background:'var(--col-glass)',border:'1px solid var(--col-border)',borderRadius:'var(--radius-xl)',padding:'28px 24px',backdropFilter:'blur(16px)',boxShadow:'0 24px 64px rgba(0,0,0,0.2)',display:'flex',flexDirection:'column',gap:20}}>
           <button onClick={onOpenShop} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.3)',background:'rgba(245,158,11,0.06)',color:'#f59e0b',fontWeight:700,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all 0.15s',boxShadow:shopState.proUnlocked?'0 0 16px rgba(245,158,11,0.2)':'none'}}
             onMouseEnter={e=>{e.currentTarget.style.background='rgba(245,158,11,0.12)';e.currentTarget.style.boxShadow='0 0 20px rgba(245,158,11,0.25)';}}
             onMouseLeave={e=>{e.currentTarget.style.background='rgba(245,158,11,0.06)';e.currentTarget.style.boxShadow=shopState.proUnlocked?'0 0 16px rgba(245,158,11,0.2)':'none';}}
@@ -973,7 +1082,7 @@
           <div>
             <label>Game Mode</label>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-              {[{id:MODE_BOT,emoji:'🤖',label:'vs Bot',desc:'You vs AI'},{id:MODE_LOCAL,emoji:'👥',label:'Local 2P',desc:'Same device'},{id:MODE_ONLINE,emoji:'🌐',label:'Online',desc:'Global MP'}].map(m=>(
+              {[{id:MODE_BOT,emoji:'🤖',label:'vs Bot',desc:'You vs AI'},{id:MODE_LOCAL,emoji:'👥',label:'Local 2P',desc:'Same device'},{id:MODE_ONLINE,emoji:'🌐',label:'Online',desc:'Real-time 2P'}].map(m=>(
                 <button key={m.id} onClick={()=>setMode(m.id)} style={{padding:'12px 8px',borderRadius:'var(--radius-md)',border:`1px solid ${mode===m.id?T.accent:T.border}`,background:mode===m.id?'rgba(56,189,248,0.1)':T.surface,color:mode===m.id?T.accent:T.muted,transition:'all 0.18s',boxShadow:mode===m.id?'0 0 16px rgba(56,189,248,0.12)':'none',textAlign:'center'}}
                   onMouseEnter={e=>{if(mode!==m.id)e.currentTarget.style.borderColor=T.borderHi;}}
                   onMouseLeave={e=>{if(mode!==m.id)e.currentTarget.style.borderColor=T.border;}}
@@ -991,21 +1100,21 @@
                 <label>🔴 Your name (Red · Host)</label>
                 <input type="text" value={p1Name} onChange={e=>setP1Name(e.target.value||'Player 1')} placeholder={globalName||'Player 1'}/>
               </div>
-              <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('create')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(255,61,107,0.35)',background:'rgba(255,61,107,0.1)',color:T.p1,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
+              <button disabled={onlineBusy||!canPlayOnline} onClick={()=>runOnline('create')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(255,61,107,0.35)',background:'rgba(255,61,107,0.1)',color:T.p1,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
                 🔐 Create Private Room
               </button>
               <div>
                 <label>Join with 4-digit code</label>
                 <div style={{display:'flex',gap:8}}>
                   <input type="text" inputMode="numeric" maxLength={4} value={joinCode} onChange={e=>setJoinCode(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="1234" style={{fontFamily:'var(--font-mono)',letterSpacing:'0.15em',textAlign:'center'}}/>
-                  <button disabled={onlineBusy||joinCode.length!==4||!FB.isConfigured()} onClick={()=>runOnline('join')} style={{padding:'11px 16px',borderRadius:'var(--radius-sm)',border:'none',background:'linear-gradient(135deg,var(--col-accent),#0ea5e9)',color:'#020c16',fontWeight:800,fontSize:14,whiteSpace:'nowrap',opacity:onlineBusy?0.6:1}}>Join</button>
+                  <button disabled={onlineBusy||joinCode.length!==4||!canPlayOnline} onClick={()=>runOnline('join')} style={{padding:'11px 16px',borderRadius:'var(--radius-sm)',border:'none',background:'linear-gradient(135deg,var(--col-accent),#0ea5e9)',color:'#020c16',fontWeight:800,fontSize:14,whiteSpace:'nowrap',opacity:onlineBusy?0.6:1}}>Join</button>
                 </div>
               </div>
-              <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('random')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(251,191,36,0.35)',background:'rgba(251,191,36,0.08)',color:T.p2,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
+              <button disabled={onlineBusy||!canPlayOnline} onClick={()=>runOnline('random')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(251,191,36,0.35)',background:'rgba(251,191,36,0.08)',color:T.p2,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
                 🎲 Play with Random
               </button>
               {onlineErr&&<p style={{color:T.danger,fontSize:12,lineHeight:1.5}}>{onlineErr}</p>}
-              <p style={{color:T.dim,fontSize:11,lineHeight:1.5}}>Host plays <span style={{color:T.p1,fontWeight:600}}>Red</span>, guest plays <span style={{color:T.p2,fontWeight:600}}>Yellow</span>. Moves sync in real time.</p>
+              <p style={{color:T.dim,fontSize:11,lineHeight:1.5}}>Private rooms or random match. Host = <span style={{color:T.p1,fontWeight:600}}>Red</span>, guest = <span style={{color:T.p2,fontWeight:600}}>Yellow</span>. Requires Firebase (see status below).</p>
             </div>
           )}
           {mode===MODE_BOT&&(
@@ -1052,6 +1161,7 @@
           >Launch Game →</button>
           )}
         </div>
+        <FirebaseStatus/>
         <GlobalLeaderboard/>
       </div>
     );
@@ -1646,6 +1756,7 @@
 
     return(
       <>
+        <ThemeToggle/>
         {screen==='setup'&&<SetupScreen onStart={handleStart} savedGame={savedGame} shopState={shopState} onOpenShop={()=>setShowShop(true)} onOnlineStart={handleOnlineStart}/>}
         {screen==='online-wait'&&(
           <OnlineWaitingScreen
