@@ -24,10 +24,30 @@
     return c && c.apiKey && c.apiKey !== 'YOUR_API_KEY' && c.databaseURL;
   }
 
+  const ROWS = 6;
+  const COLS = 7;
+
   function emptyBoard() {
-    return Array(6)
+    return Array(ROWS)
       .fill(null)
-      .map(() => Array(7).fill(null));
+      .map(() => Array(COLS).fill(null));
+  }
+
+  /** Firebase RTDB deletes null keys — empty holes become undefined and block moves */
+  function normalizeBoard(board) {
+    const out = emptyBoard();
+    if (!board) return out;
+    const rows = Array.isArray(board) ? board : Object.keys(board).sort((a, b) => +a - +b).map((k) => board[k]);
+    for (let r = 0; r < ROWS; r++) {
+      const row = rows[r];
+      if (!row) continue;
+      const cells = Array.isArray(row) ? row : Object.keys(row).sort((a, b) => +a - +b).map((k) => row[k]);
+      for (let c = 0; c < COLS; c++) {
+        const v = cells[c];
+        out[r][c] = v === P1 || v === P2 ? v : null;
+      }
+    }
+    return out;
   }
 
   function lbKey(name) {
@@ -79,6 +99,24 @@
     };
   }
 
+  function friendlyFirebaseError(e) {
+    const code = (e && e.code) || '';
+    const msg = (e && e.message) || String(e);
+    if (
+      code === 'auth/configuration-not-found' ||
+      msg.indexOf('configuration-not-found') !== -1
+    ) {
+      return (
+        'Anonymous sign-in is not enabled. In Firebase Console open Authentication → Sign-in method → Anonymous → Enable. ' +
+        'Then add sujindikasylzada-cyber.github.io under Authentication → Settings → Authorized domains.'
+      );
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return 'Anonymous sign-in is disabled in Firebase. Enable it under Authentication → Sign-in method.';
+    }
+    return msg;
+  }
+
   async function ensureAuth() {
     if (auth.currentUser) {
       uid = auth.currentUser.uid;
@@ -106,7 +144,7 @@
       initError = null;
       return { ok: true, uid };
     } catch (e) {
-      initError = e.message || String(e);
+      initError = friendlyFirebaseError(e);
       return { ok: false, error: initError };
     }
   }
@@ -119,19 +157,23 @@
   }
 
   function setPresence(roomPath, role, connected) {
-    if (!roomPath || !role) return;
+    if (!roomPath || !role || !db) return;
     const ref = db.ref(roomPath);
     const patch = { updatedAt: firebase.database.ServerValue.TIMESTAMP };
     if (role === P1) patch.hostConnected = connected;
     else patch.guestConnected = connected;
-    if (!connected) patch.disconnected = role === P1 ? 'host' : 'guest';
-    else patch.disconnected = null;
-    ref.update(patch);
-    if (!connected) {
+    if (connected) {
+      patch.disconnected = null;
+      ref.update(patch);
+      const who = role === P1 ? 'host' : 'guest';
       ref.onDisconnect().update({
-        disconnected: role === P1 ? 'host' : 'guest',
+        disconnected: who,
         updatedAt: firebase.database.ServerValue.TIMESTAMP,
       });
+    } else {
+      patch.disconnected = role === P1 ? 'host' : 'guest';
+      ref.update(patch);
+      ref.onDisconnect().cancel();
     }
   }
 
@@ -253,9 +295,15 @@
     };
   }
 
+  function normalizeRoom(room) {
+    if (!room) return room;
+    if (room.board) room.board = normalizeBoard(room.board);
+    return room;
+  }
+
   function subscribeRoom(roomPath, onUpdate) {
     const ref = db.ref(roomPath);
-    const handler = (snap) => onUpdate(snap.val());
+    const handler = (snap) => onUpdate(normalizeRoom(snap.val()));
     ref.on('value', handler);
     return () => ref.off('value', handler);
   }
@@ -275,10 +323,12 @@
   async function dropPiece(roomPath, col, player, helpers) {
     const { isValidCol, dropPiece: drop, checkWinner, isDraw, getDropRow } = helpers;
     const ref = db.ref(roomPath);
+    let applied = false;
     const result = await ref.transaction((room) => {
-      if (!room || room.status !== 'playing') return room;
+      if (!room) return room;
+      if (room.status !== 'playing') return room;
       if (room.current !== player) return room;
-      const board = room.board;
+      const board = normalizeBoard(room.board);
       if (!isValidCol(board, col)) return room;
       const row = getDropRow(board, col);
       const next = drop(board, col, player);
@@ -299,9 +349,10 @@
         room.current = player === P1 ? P2 : P1;
       }
       room.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+      applied = true;
       return room;
     });
-    return result.committed;
+    return { ok: result.committed && applied, reason: result.committed ? (applied ? null : 'not_applied') : 'transaction_failed' };
   }
 
   async function requestRematch(roomPath, playerUid) {
