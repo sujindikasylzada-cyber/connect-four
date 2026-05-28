@@ -223,8 +223,6 @@
   const STORAGE_KEY='c4_game_state',LB_KEY='c4_leaderboard_v2',SHOP_KEY='c4_shop_v1',THEME_KEY='c4_theme';
   const DEFAULT_TIMER=15;
   const FB=C4Firebase;
-  const LIVE_HOST='sujindikasylzada-cyber.github.io';
-
   function loadTheme(){try{return localStorage.getItem(THEME_KEY)==='light'?'light':'dark';}catch{return 'dark';}}
   function applyTheme(theme){
     document.documentElement.setAttribute('data-theme',theme==='light'?'light':'dark');
@@ -869,54 +867,6 @@
   }
 
   /* ════════════════════════════════════════════
-     FIREBASE STATUS (setup)
-  ═════════════════════════════════════════════*/
-  function FirebaseStatus(){
-    const[health,setHealth]=useState({loading:true});
-    useEffect(()=>{
-      let cancelled=false;
-      (async()=>{
-        const h=await FB.checkHealth();
-        if(!cancelled)setHealth({loading:false,...h});
-      })();
-      return()=>{cancelled=true;};
-    },[]);
-    if(health.loading){
-      return(
-        <div style={{width:'100%',maxWidth:420,marginTop:20,padding:'12px 14px',borderRadius:'var(--radius-md)',background:T.surface,border:`1px solid ${T.border}`,fontSize:12,color:T.muted}}>
-          Checking Firebase…
-        </div>
-      );
-    }
-    const row=(ok,label)=>(
-      <div key={label} style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:ok?T.text:T.muted}}>
-        <span style={{color:ok?T.success:T.danger,fontWeight:800}}>{ok?'✓':'✗'}</span>
-        <span>{label}</span>
-      </div>
-    );
-    return(
-      <div style={{width:'100%',maxWidth:420,marginTop:20,padding:'14px 16px',borderRadius:'var(--radius-md)',background:health.ok?'rgba(52,211,153,0.08)':'rgba(248,113,113,0.06)',border:`1px solid ${health.ok?'rgba(52,211,153,0.35)':'rgba(248,113,113,0.3)'}`,display:'flex',flexDirection:'column',gap:8}}>
-        <div style={{fontWeight:800,fontSize:13,color:health.ok?T.success:T.danger}}>
-          {health.ok?'🌐 Online services ready':'⚠️ Firebase setup needed'}
-        </div>
-        {health.checks&&(
-          <div style={{display:'flex',flexDirection:'column',gap:4}}>
-            {row(health.checks.config,'firebase-config.js')}
-            {row(health.checks.auth,'Anonymous sign-in enabled')}
-            {row(health.checks.database,'Realtime Database rules published')}
-          </div>
-        )}
-        {!health.ok&&health.message&&<p style={{fontSize:11,color:T.muted,lineHeight:1.5,margin:0}}>{health.message}</p>}
-        {!health.ok&&(
-          <p style={{fontSize:10,color:T.dim,lineHeight:1.5,margin:0}}>
-            In Firebase Console: enable <strong>Anonymous</strong> auth, add <strong>{LIVE_HOST}</strong> under Authorized domains, and publish rules from <code style={{fontFamily:'var(--font-mono)'}}>firebase-database.rules.json</code>.
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  /* ════════════════════════════════════════════
      GLOBAL LEADERBOARD (Firebase)
   ═════════════════════════════════════════════*/
   function GlobalLeaderboard(){
@@ -927,8 +877,6 @@
       let cancelled=false;
       (async()=>{
         if(!FB.isConfigured()){setErr('Firebase is not configured — global rankings unavailable.');setLoading(false);return;}
-        const health=await FB.checkHealth();
-        if(!health.ok){setErr(health.message||'Fix Firebase setup (see status below).');setLoading(false);return;}
         const r=await FB.init();
         if(cancelled)return;
         if(!r.ok){setErr(r.error||'Could not connect');setLoading(false);return;}
@@ -1023,10 +971,7 @@
     const[joinCode,setJoinCode]=useState('');
     const[onlineBusy,setOnlineBusy]=useState(false);
     const[onlineErr,setOnlineErr]=useState(null);
-    const[fbReady,setFbReady]=useState(null);
     const globalName=FB.getSavedUsername()||p1Name;
-    useEffect(()=>{FB.checkHealth().then((h)=>setFbReady(!!h.ok));},[]);
-    const canPlayOnline=FB.isConfigured()&&fbReady===true;
     const orbs=[T.p1,T.p2,T.bot,T.accent];
     const selDiff=DIFFICULTIES.find(d=>d.id===difficulty);
     async function runOnline(action){
@@ -1100,21 +1045,21 @@
                 <label>🔴 Your name (Red · Host)</label>
                 <input type="text" value={p1Name} onChange={e=>setP1Name(e.target.value||'Player 1')} placeholder={globalName||'Player 1'}/>
               </div>
-              <button disabled={onlineBusy||!canPlayOnline} onClick={()=>runOnline('create')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(255,61,107,0.35)',background:'rgba(255,61,107,0.1)',color:T.p1,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
+              <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('create')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(255,61,107,0.35)',background:'rgba(255,61,107,0.1)',color:T.p1,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
                 🔐 Create Private Room
               </button>
               <div>
                 <label>Join with 4-digit code</label>
                 <div style={{display:'flex',gap:8}}>
                   <input type="text" inputMode="numeric" maxLength={4} value={joinCode} onChange={e=>setJoinCode(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="1234" style={{fontFamily:'var(--font-mono)',letterSpacing:'0.15em',textAlign:'center'}}/>
-                  <button disabled={onlineBusy||joinCode.length!==4||!canPlayOnline} onClick={()=>runOnline('join')} style={{padding:'11px 16px',borderRadius:'var(--radius-sm)',border:'none',background:'linear-gradient(135deg,var(--col-accent),#0ea5e9)',color:'#020c16',fontWeight:800,fontSize:14,whiteSpace:'nowrap',opacity:onlineBusy?0.6:1}}>Join</button>
+                  <button disabled={onlineBusy||joinCode.length!==4||!FB.isConfigured()} onClick={()=>runOnline('join')} style={{padding:'11px 16px',borderRadius:'var(--radius-sm)',border:'none',background:'linear-gradient(135deg,var(--col-accent),#0ea5e9)',color:'#020c16',fontWeight:800,fontSize:14,whiteSpace:'nowrap',opacity:onlineBusy?0.6:1}}>Join</button>
                 </div>
               </div>
-              <button disabled={onlineBusy||!canPlayOnline} onClick={()=>runOnline('random')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(251,191,36,0.35)',background:'rgba(251,191,36,0.08)',color:T.p2,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
+              <button disabled={onlineBusy||!FB.isConfigured()} onClick={()=>runOnline('random')} style={{width:'100%',padding:'13px',borderRadius:'var(--radius-md)',border:'1px solid rgba(251,191,36,0.35)',background:'rgba(251,191,36,0.08)',color:T.p2,fontWeight:700,fontSize:14,opacity:onlineBusy?0.6:1}}>
                 🎲 Play with Random
               </button>
               {onlineErr&&<p style={{color:T.danger,fontSize:12,lineHeight:1.5}}>{onlineErr}</p>}
-              <p style={{color:T.dim,fontSize:11,lineHeight:1.5}}>Private rooms or random match. Host = <span style={{color:T.p1,fontWeight:600}}>Red</span>, guest = <span style={{color:T.p2,fontWeight:600}}>Yellow</span>. Requires Firebase (see status below).</p>
+              <p style={{color:T.dim,fontSize:11,lineHeight:1.5}}>Private rooms or random match. Host = <span style={{color:T.p1,fontWeight:600}}>Red</span>, guest = <span style={{color:T.p2,fontWeight:600}}>Yellow</span>.</p>
             </div>
           )}
           {mode===MODE_BOT&&(
@@ -1161,7 +1106,6 @@
           >Launch Game →</button>
           )}
         </div>
-        <FirebaseStatus/>
         <GlobalLeaderboard/>
       </div>
     );
